@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Art Gallery</title>
+  <title>Louis | Composer</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap" rel="stylesheet">
   <!-- Plyr CSS -->
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
@@ -175,18 +175,37 @@
     </div>
   </div>
 
-  <div class="bottom-sheet" id="contact-sheet">
-    <div class="sheet-content">
-      <h2>Contact</h2>
-      <form>
-        <input type="text" placeholder="Your Name" required>
-        <input type="email" placeholder="Your Email" required>
-        <textarea placeholder="Your Message" rows="4" required></textarea>
-        <button type="submit">Send</button>
-      </form>
-      <button class="close-btn">×</button>
+    <div class="bottom-sheet" id="contact-sheet">
+      <div class="sheet-content">
+        <h2>Contact</h2>
+        <form id="contact-form">
+          <input type="text" name="name" placeholder="Your Name" required>
+          <input type="email" name="email" placeholder="Your Email" required>
+          <textarea name="message" placeholder="Your Message" rows="4" required></textarea>
+          <button type="submit">Send</button>
+        </form>
+        <button class="close-btn">×</button>
+      </div>
     </div>
-  </div>
+
+    <script>
+      document.getElementById('contact-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const name = formData.get('name');
+        const email = formData.get('email');
+        const message = formData.get('message');
+        
+        const subject = `New message from ${name}`;
+        const body = `Name: ${name}%0D%0AEmail: ${email}%0D%0A%0D%0AMessage:%0D%0A${message}`;
+        
+        window.location.href = `mailto:louis@louispapalouis.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        
+        alert('Your message has been sent!');
+        closeAllSheets();
+      });
+    </script>
 
   <!-- Plyr JS -->
   <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
