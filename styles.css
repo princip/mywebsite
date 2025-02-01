@@ -1,0 +1,386 @@
+:root {
+  --plyr-color-main: #a8a8a8;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+  font-size: 16px; /* Base font size */
+}
+
+.plyr {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  color: white;
+}
+
+.plyr--audio .plyr__controls {
+  background: transparent;
+}
+
+.plyr--audio .plyr__progress__buffer,
+.plyr--audio .plyr__volume--display {
+  background: var(--plyr-color-main); /* Updated to use variable */
+}
+
+.plyr--audio .plyr__progress--played,
+.plyr--audio .plyr__volume--value {
+  background: var(--plyr-color-main); /* Updated to use variable */
+}
+
+.plyr--audio .plyr__control:hover,
+.plyr--audio .plyr__control[aria-expanded="true"] {
+  background: var(--plyr-color-main); /* Updated to use variable */
+}
+
+.gallery {
+  display: flex;
+  height: 100vh;
+  width: 300vw; /* 3 slides wide */
+  transition: transform 0.5s ease-in-out;
+}
+
+.slide {
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  animation: zoomAndPan 60s linear infinite;
+  background-size: 110%;
+}
+
+/* Desktop Background Images */
+#slide1 {
+  background-image: url('https://i.postimg.cc/wjpNzzLf/DP119115.jpg');
+}
+
+#slide2 {
+  background-image: url('https://i.postimg.cc/kgq2ZcPL/Pieter-Bruegel-the-Elder-The-Peasant-Dance-WGA3499.jpg');
+}
+
+#slide3 {
+  background-image: url('https://i.postimg.cc/Sj0yWykw/a-scene-on-the-ice-1967-3-1.jpg');
+}
+
+@keyframes zoomAndPan {
+  0% { background-position: 0% 0%; }
+  25% { background-position: 100% 0%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+.nav-button {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  padding: 15px;
+  cursor: pointer;
+  font-size: 24px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out 1s forwards;
+  transition: background 0.3s, transform 0.2s ease-out;
+}
+
+.nav-button:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.nav-button:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+#prev { left: 20px; }
+#next { right: 20px; }
+
+.side-buttons {
+  position: fixed;
+  left: 20px;
+  top: 15%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.menu-button {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  padding: 15px 25px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  transition: background 0.3s, transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateX(-20px);
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+@keyframes slideIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.menu-button:nth-child(1) {
+  animation-delay: 0.2s;
+}
+.menu-button:nth-child(2) {
+  animation-delay: 0.4s;
+}
+.menu-button:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.menu-button:hover {
+  background: rgba(0, 0, 0, 0.54);
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.menu-button:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.bottom-sheet {
+  position: fixed;
+  bottom: -100%;
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Adjust for centering */
+  background: rgba(0, 0, 0, 0.54);
+  color: white;
+  padding: 30px;
+  transition: bottom 0.4s ease-in-out;
+  z-index: 1000;
+  width: 800px; 
+  height: 300px;
+  border-radius: 0px; /* Remove border-radius */
+}
+
+.bottom-sheet.visible {
+  bottom: 0;
+}
+
+.sheet-content {
+  max-width: 100%; 
+  margin: 0;
+  position: relative;
+  padding-top: 30px;
+  padding-left: 30px; /* Add left padding */
+  padding-right: 30px; /* Add right padding */
+  overflow: hidden; /* Hide scrollbar */
+  height: calc(300px - 60px); 
+}
+
+/* Line */
+.sheet-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%; /* Start from center */
+  transform: translateX(-50%); /* Adjust to center */
+  width: 0; /* Initially no width */
+  height: 1px; /* Thin line */
+  background-color: #a8a8a8;
+  opacity: 0; /* Initially hidden */
+  transition: opacity 0.3s, width 0.3s; /* Smooth transition */
+}
+
+/* Show line on hover */
+.bottom-sheet:hover .sheet-content::after {
+  opacity: 1;
+  width: calc(100% - 60px); /* Adjust width to consider padding */
+}
+
+.sheet-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheet-close:hover {
+  color: #ccc;
+}
+
+.sheet-content h2 {
+  margin-bottom: 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+}
+
+.sheet-content p {
+  line-height: 1.6;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 300;
+}
+
+.sheet-content ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sheet-content li {
+  margin: 10px 0;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+}
+
+.sheet-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sheet-content input,
+.sheet-content textarea {
+  padding: 10px;
+  border: 1px solid #444;
+  background: #222;
+  color: white;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 300;
+}
+
+.sheet-content button[type="submit"] {
+  background: #555;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  text-transform: uppercase;
+  transition: background 0.3s;
+}
+
+.sheet-content button[type="submit"]:hover {
+  background: #666;
+}
+
+/* Media Queries for Mobile Responsiveness */
+@media (max-width: 768px) {
+  html, body {
+      font-size: 18px; /* Increase base font size on mobile */
+  }
+
+  /* Mobile Background Images */
+  #slide1 {
+    background-image: url('https://i.postimg.cc/kMSDgZnk/Vermeer-Woman-with-a-Lute-near-a-window.jpg');
+  }
+
+  #slide2 {
+    background-image: url('https://i.postimg.cc/gJCJKyKS/Vermeer-The-concert.jpg');
+  }
+
+  #slide3 {
+    background-image: url('https://i.postimg.cc/bNqNLck2/Johannes-Vermeer-Lady-at-the-Virginal-with-a-Gentleman-The-Music-Lesson-Google-Art-Project.jpg');
+  }
+  
+  .gallery {
+    width: 100vw; /* Each slide takes full width on mobile */
+    overflow: hidden;
+  }
+
+  .slide {
+    background-size: cover; /* Use cover for zoomed-in effect */
+    background-repeat: no-repeat;
+    background-position: center;
+    animation: zoomAndPan 60s linear infinite; /* Add animation */
+  }
+
+  /* Hide all slides except the current one */
+  .gallery .slide:not(.current-slide) {
+    display: none;
+  }
+
+  .nav-button {
+    font-size: 40px;
+    padding: 20px;
+    bottom: 15%;
+    top: auto;
+  }
+
+  #prev { left: 30px; }
+  #next { right: 30px; }
+
+  .side-buttons {
+    width: 100%;
+    flex-direction: row;
+    top: 0;
+    left: 0;
+    justify-content: space-around;
+    padding: 10px 0;
+    z-index: 1000;
+  }
+
+  .menu-button {
+    padding: 15px;
+    font-size: 16px;
+    flex: 1; /* Equal width for all buttons */
+    text-align: center; /* Center text */
+  }
+  
+  .plyr {
+    width: 90%;
+    bottom: 10px;
+    right: 5%;
+  }
+
+  .bottom-sheet {
+    width: 100%;
+    height: 80vh; /* Increase height for better touch interaction */
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .sheet-content {
+    height: auto;
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .sheet-content h2 {
+    font-size: 24px;
+  }
+
+  .sheet-content p, .sheet-content li {
+    font-size: 18px; /* Larger text on mobile */
+  }
+
+  .sheet-content input, .sheet-content textarea {
+    font-size: 18px;
+  }
+}
