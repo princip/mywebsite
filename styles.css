@@ -1,13 +1,42 @@
 :root {
   --plyr-color-main: #a8a8a8;
+  /* --revealer-size: 200px; /* Or set explicitly below */
 }
 
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+  overflow: hidden; /* Prevent scrollbars */
   font-size: 16px; /* Base font size */
+  cursor: none; /* Hide the default cursor */
+}
+
+/* The Color Reveal Bubble - Reverted Appearance */
+#color-revealer {
+  position: fixed;
+  /* Original Size */
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  /* Original Border */
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  /* No background color or blur */
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform: translate(-50%, -50%); /* Center on cursor */
+  pointer-events: none; /* Allow clicks to pass through */
+  z-index: 9999; /* Keep it high */
+  opacity: 0; /* Initially hidden */
+  /* Original transition for appearing/disappearing */
+  transition: opacity 0.3s ease;
+  /* Removed transform transition, JS handles movement */
+  overflow: hidden; /* Match original */
+}
+
+body:hover #color-revealer {
+    opacity: 1; /* Show when mouse is over the body */
 }
 
 .plyr {
@@ -18,6 +47,8 @@ html, body {
   background: rgba(0, 0, 0, 0.7);
   border-radius: 8px;
   color: white;
+  z-index: 100; /* Ensure it's above the canvas but below the revealer */
+  cursor: pointer !important; /* Override default body cursor */
 }
 
 .plyr--audio .plyr__controls {
@@ -26,56 +57,62 @@ html, body {
 
 .plyr--audio .plyr__progress__buffer,
 .plyr--audio .plyr__volume--display {
-  background: var(--plyr-color-main); /* Updated to use variable */
+  background: var(--plyr-color-main);
 }
 
 .plyr--audio .plyr__progress--played,
 .plyr--audio .plyr__volume--value {
-  background: var(--plyr-color-main); /* Updated to use variable */
+  background: var(--plyr-color-main);
 }
 
 .plyr--audio .plyr__control:hover,
 .plyr--audio .plyr__control[aria-expanded="true"] {
-  background: var(--plyr-color-main); /* Updated to use variable */
+  background: var(--plyr-color-main);
 }
 
 .gallery {
   display: flex;
   height: 100vh;
-  width: 300vw; /* 3 slides wide */
-  transition: transform 0.5s ease-in-out;
+  width: 100vw; /* Only show one slide at a time */
+  position: relative;
 }
 
 .slide {
   width: 100vw;
   height: 100vh;
-  background-size: cover;
-  background-position: center;
-  animation: zoomAndPan 60s linear infinite;
-  background-size: 110%;
+  position: absolute; /* Use absolute positioning to stack */
+  top: 0;
+  left: 0;
+  opacity: 0; /* Start hidden */
+  visibility: hidden;
+  transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+  overflow: hidden;
 }
 
-/* Desktop Background Images */
-#slide1 {
-  background-image: url('https://i.postimg.cc/wjpNzzLf/DP119115.jpg');
+.slide.current-slide {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1; /* Bring current slide to front */
 }
 
-#slide2 {
-  background-image: url('https://i.postimg.cc/kgq2ZcPL/Pieter-Bruegel-the-Elder-The-Peasant-Dance-WGA3499.jpg');
+/* Canvas takes the place of the background */
+.background-canvas {
+  display: block; /* Remove extra space below canvas */
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1; /* Behind slide content (if any added later) */
 }
 
-#slide3 {
-  background-image: url('https://i.postimg.cc/Sj0yWykw/a-scene-on-the-ice-1967-3-1.jpg');
+
+/* Ensure interactive elements have pointer cursor */
+.menu-button, .nav-button, .sheet-close, .bottom-sheet, .plyr, input, textarea, button[type="submit"] {
+  cursor: pointer !important; /* Override body cursor: none */
 }
 
-@keyframes zoomAndPan {
-  0% { background-position: 0% 0%; }
-  25% { background-position: 100% 0%; }
-  50% { background-position: 100% 100%; }
-  75% { background-position: 0% 100%; }
-  100% { background-position: 0% 0%; }
-}
-
+/* Navigation Buttons - Reverted Styles */
 .nav-button {
   position: fixed;
   top: 50%;
@@ -84,24 +121,26 @@ html, body {
   color: white;
   border: none;
   padding: 15px;
-  cursor: pointer;
+  /* cursor: pointer; */ /* Already set above */
   font-size: 24px;
   font-family: 'Montserrat', sans-serif;
   font-weight: 600;
-  opacity: 0;
-  animation: fadeIn 0.5s ease-out 1s forwards;
+  opacity: 0; /* Start hidden */
+  animation: fadeIn 0.5s ease-out 1s forwards; /* Original fade in */
   transition: background 0.3s, transform 0.2s ease-out;
+  z-index: 100; /* Above canvas */
 }
 
 .nav-button:hover {
   background: rgba(0, 0, 0, 0.7);
-  transform: translateY(-50%) scale(1.1);
+  transform: translateY(-50%) scale(1.1); /* Original hover */
 }
 
 .nav-button:active {
-  transform: translateY(-50%) scale(0.95);
+  transform: translateY(-50%) scale(0.95); /* Original active */
 }
 
+/* Original fadeIn animation */
 @keyframes fadeIn {
   to { opacity: 1; }
 }
@@ -109,38 +148,42 @@ html, body {
 #prev { left: 20px; }
 #next { right: 20px; }
 
+/* Side Buttons - Reverted Styles */
 .side-buttons {
   position: fixed;
   left: 20px;
-  top: 15%;
+  top: 15%; /* Original position */
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Original layout */
   gap: 15px;
+  z-index: 100; /* Above canvas */
 }
 
 .menu-button {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.7); /* Original background */
   color: white;
   border: none;
-  padding: 15px 25px;
-  cursor: pointer;
-  font-size: 16px;
+  padding: 15px 25px; /* Original padding */
+  /* cursor: pointer; */ /* Already set above */
+  font-size: 16px; /* Original font size */
   font-family: 'Montserrat', sans-serif;
-  font-weight: 600;
+  font-weight: 600; /* Original font weight */
   text-transform: uppercase;
   letter-spacing: 1px;
-  border-radius: 4px;
-  transition: background 0.3s, transform 0.2s ease-out, box-shadow 0.2s ease-out;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  opacity: 0;
-  transform: translateX(-20px);
-  animation: slideIn 0.5s ease-out forwards;
+  border-radius: 4px; /* Original border radius */
+  transition: background 0.3s, transform 0.2s ease-out, box-shadow 0.2s ease-out; /* Original transition */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Original shadow */
+  opacity: 0; /* Start hidden */
+  transform: translateX(-20px); /* Start off-screen for animation */
+  animation: slideIn 0.5s ease-out forwards; /* Original animation */
 }
 
+/* Original slideIn animation */
 @keyframes slideIn {
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* Staggered animation delays - Original */
 .menu-button:nth-child(1) {
   animation-delay: 0.2s;
 }
@@ -152,29 +195,31 @@ html, body {
 }
 
 .menu-button:hover {
-  background: rgba(0, 0, 0, 0.54);
-  transform: scale(1.05);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.54); /* Original hover background */
+  transform: scale(1.05); /* Original hover transform */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Original hover shadow */
 }
 
 .menu-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: scale(0.98); /* Original active transform */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Original active shadow */
 }
 
+/* Bottom Sheet Styles - Keep as they were */
 .bottom-sheet {
   position: fixed;
   bottom: -100%;
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%); /* Adjust for centering */
-  background: rgba(0, 0, 0, 0.54);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
   color: white;
   padding: 30px;
   transition: bottom 0.4s ease-in-out;
   z-index: 1000;
-  width: 800px; 
+  width: 800px;
   height: 300px;
-  border-radius: 0px; /* Remove border-radius */
+  border-radius: 0px;
+  box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
 }
 
 .bottom-sheet.visible {
@@ -182,14 +227,14 @@ html, body {
 }
 
 .sheet-content {
-  max-width: 100%; 
+  max-width: 100%;
   margin: 0;
   position: relative;
   padding-top: 30px;
-  padding-left: 30px; /* Add left padding */
-  padding-right: 30px; /* Add right padding */
-  overflow: hidden; /* Hide scrollbar */
-  height: calc(300px - 60px); 
+  padding-left: 30px;
+  padding-right: 30px;
+  overflow: hidden;
+  height: calc(300px - 60px);
 }
 
 /* Line */
@@ -197,19 +242,19 @@ html, body {
   content: '';
   position: absolute;
   bottom: 0;
-  left: 50%; /* Start from center */
-  transform: translateX(-50%); /* Adjust to center */
-  width: 0; /* Initially no width */
-  height: 1px; /* Thin line */
-  background-color: #a8a8a8;
-  opacity: 0; /* Initially hidden */
-  transition: opacity 0.3s, width 0.3s; /* Smooth transition */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 1px;
+  background-color: var(--plyr-color-main);
+  opacity: 0;
+  transition: opacity 0.3s, width 0.3s;
 }
 
 /* Show line on hover */
 .bottom-sheet:hover .sheet-content::after {
   opacity: 1;
-  width: calc(100% - 60px); /* Adjust width to consider padding */
+  width: calc(100% - 60px);
 }
 
 .sheet-close {
@@ -222,10 +267,11 @@ html, body {
   border: none;
   color: white;
   font-size: 20px;
-  cursor: pointer;
+  /* cursor: pointer; */ /* Set globally */
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1001; /* Above sheet content */
 }
 
 .sheet-close:hover {
@@ -271,6 +317,7 @@ html, body {
   border-radius: 4px;
   font-family: 'Montserrat', sans-serif;
   font-weight: 300;
+  cursor: text !important; /* Ensure text cursor for inputs */
 }
 
 .sheet-content button[type="submit"] {
@@ -278,7 +325,7 @@ html, body {
   color: white;
   border: none;
   padding: 10px 20px;
-  cursor: pointer;
+  /* cursor: pointer !important; */ /* Set globally */
   border-radius: 4px;
   font-family: 'Montserrat', sans-serif;
   font-weight: 400;
@@ -293,37 +340,12 @@ html, body {
 /* Media Queries for Mobile Responsiveness */
 @media (max-width: 768px) {
   html, body {
-      font-size: 18px; /* Increase base font size on mobile */
+      font-size: 18px;
+      cursor: default !important; /* Show default cursor on mobile */
   }
 
-  /* Mobile Background Images */
-  #slide1 {
-    background-image: url('https://i.postimg.cc/kMSDgZnk/Vermeer-Woman-with-a-Lute-near-a-window.jpg');
-  }
-
-  #slide2 {
-    background-image: url('https://i.postimg.cc/gJCJKyKS/Vermeer-The-concert.jpg');
-  }
-
-  #slide3 {
-    background-image: url('https://i.postimg.cc/bNqNLck2/Johannes-Vermeer-Lady-at-the-Virginal-with-a-Gentleman-The-Music-Lesson-Google-Art-Project.jpg');
-  }
-  
-  .gallery {
-    width: 100vw; /* Each slide takes full width on mobile */
-    overflow: hidden;
-  }
-
-  .slide {
-    background-size: cover; /* Use cover for zoomed-in effect */
-    background-repeat: no-repeat;
-    background-position: center;
-    animation: zoomAndPan 60s linear infinite; /* Add animation */
-  }
-
-  /* Hide all slides except the current one */
-  .gallery .slide:not(.current-slide) {
-    display: none;
+  #color-revealer {
+      display: none; /* Hide the bubble cursor on mobile */
   }
 
   .nav-button {
@@ -331,40 +353,56 @@ html, body {
     padding: 20px;
     bottom: 15%;
     top: auto;
+    animation: fadeIn 0.5s ease-out 0.5s forwards; /* Slightly faster fade in on mobile */
   }
 
   #prev { left: 30px; }
   #next { right: 30px; }
 
+  /* Side buttons become top bar on mobile */
   .side-buttons {
     width: 100%;
-    flex-direction: row;
-    top: 0;
+    flex-direction: row; /* Horizontal layout */
+    top: 0; /* Stick to top */
     left: 0;
     justify-content: space-around;
     padding: 10px 0;
-    z-index: 1000;
+    background: rgba(0,0,0,0.5); /* Add background for visibility */
+    z-index: 1000; /* Ensure buttons above canvas */
   }
 
   .menu-button {
     padding: 15px;
     font-size: 16px;
-    flex: 1; /* Equal width for all buttons */
+    flex: 1; /* Equal width */
     text-align: center; /* Center text */
+    transform: none; /* Reset transform */
+    animation: none; /* Reset animation */
+    opacity: 1; /* Ensure visible */
+    position: relative;
+    z-index: 1001;
   }
-  
+
   .plyr {
     width: 90%;
     bottom: 10px;
     right: 5%;
+    z-index: 1000; /* Above canvas */
   }
 
   .bottom-sheet {
     width: 100%;
-    height: 80vh; /* Increase height for better touch interaction */
+    height: 80vh;
     padding: 20px;
     overflow-y: auto;
+    left: 0; /* Full width */
+    transform: none; /* Reset transform */
+    z-index: 1100; /* Above other elements */
   }
+
+   .bottom-sheet.visible {
+     bottom: 0;
+   }
 
   .sheet-content {
     height: auto;
@@ -377,7 +415,7 @@ html, body {
   }
 
   .sheet-content p, .sheet-content li {
-    font-size: 18px; /* Larger text on mobile */
+    font-size: 18px;
   }
 
   .sheet-content input, .sheet-content textarea {
