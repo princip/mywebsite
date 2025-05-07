@@ -379,7 +379,7 @@ contactForm.addEventListener('submit', function(e) {
   const fd = new FormData(this);
   const mailtoLink = `mailto:louis@louispapalouis.com?subject=${encodeURIComponent(`New message from ${fd.get('name')}`)}&body=${encodeURIComponent(`Name: ${fd.get('name')}%0D%0AEmail: ${fd.get('email')}%0D%0A%0D%0AMessage:%0D%0A${fd.get('message')}`)}`;
   window.location.href = mailtoLink;
-  alert('Thank you! Attempting to open your email client.');
+  alert('Thank you for reaching out!t.');
   closeAllSheets(); this.reset();
 });
 
