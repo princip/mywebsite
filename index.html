@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Louis | Composer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+  <link rel="stylesheet" href="styles.css">
+  <!-- Add GSAP library (Optional, but useful for smooth animations if needed later) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+  <!-- The Bubble Cursor -->
+  <div id="color-revealer"></div>
+
+  <div class="gallery">
+    <div class="slide" id="slide1">
+      <canvas class="background-canvas"></canvas>
+    </div>
+    <div class="slide" id="slide2">
+      <canvas class="background-canvas"></canvas>
+    </div>
+    <div class="slide" id="slide3">
+      <canvas class="background-canvas"></canvas>
+    </div>
+    <!-- NEW SLIDES ADDED HERE -->
+    <div class="slide" id="slide4">
+      <canvas class="background-canvas"></canvas>
+    </div>
+    <div class="slide" id="slide5">
+      <canvas class="background-canvas"></canvas>
+    </div>
+    <!-- END OF NEW SLIDES -->
+  </div>
+
+  <div class="side-buttons">
+    <button class="menu-button" id="about-btn">ABOUT</button>
+    <button class="menu-button" id="work-btn">WORK</button>
+    <button class="menu-button" id="contact-btn">CONTACT</button>
+  </div>
+
+  <button class="nav-button" id="prev" aria-label="Previous Slide">‹</button>
+  <button class="nav-button" id="next" aria-label="Next Slide">›</button>
+
+  <!-- Bottom sheets -->
+  <div class="bottom-sheet" id="about-sheet" role="dialog" aria-modal="true" aria-labelledby="about-sheet-title">
+    <div class="sheet-content">
+      <button class="sheet-close" aria-label="Close About panel">×</button>
+      <h2 id="about-sheet-title">About Louis PapaLouis</h2>
+      <p>Louis PapaLouis is a composer based in London, crafting evocative contemporary classical music by uniting historical influences with distinct contemporary sounds. The compositions resonate with emotional depth and modern sensibilities. Drawing inspiration from the rich tapestry of history, Louis' work invites listeners into a world where the past and present harmonise in unexpected ways.</p>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="work-sheet" role="dialog" aria-modal="true" aria-labelledby="work-sheet-title">
+    <div class="sheet-content">
+      <button class="sheet-close" aria-label="Close Work panel">×</button>
+      <h2 id="work-sheet-title">Selected Works</h2>
+      <p id="track-title-info">Now Playing: <span id="track-title"></span></p>
+      <ul id="work-track-list">
+        <!-- Tracks will be populated here by JavaScript -->
+      </ul>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="contact-sheet" role="dialog" aria-modal="true" aria-labelledby="contact-sheet-title">
+    <div class="sheet-content">
+      <button class="sheet-close" aria-label="Close Contact panel">×</button>
+      <h2 id="contact-sheet-title">Contact</h2>
+      <form id="contact-form">
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="email" name="email" placeholder="Your Email" required>
+        <textarea name="message" placeholder="Your Message" rows="4" required></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <audio id="player" controls></audio>
+
+  <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

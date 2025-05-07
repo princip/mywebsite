@@ -1,0 +1,516 @@
+:root {
+  --plyr-color-main: #48616b; /* UPDATED Plyr color */
+  --interactive-bg: rgba(72, 97, 107, 0.7);
+  --interactive-bg-hover: rgba(72, 97, 107, 0.85);
+  --interactive-bg-active: rgba(72, 97, 107, 0.9);
+  --text-color: white;
+  --focus-outline-color: #72b3d0; /* A lighter, distinct color for focus */
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-size: 16px;
+  cursor: none;
+  background-color: #1a1a1a; /* Base background for any tiny gaps */
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Generic Focus Visible Style */
+:is(button, input, textarea, [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--focus-outline-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(114, 179, 208, 0.3);
+}
+/* For elements that might have their own complex styling, a simpler outline */
+.plyr--focused, .plyr__control--forward:focus-visible,
+.plyr__control[data-plyr="play"]:focus-visible,
+.plyr__control[data-plyr="pause"]:focus-visible,
+.plyr__control[data-plyr="fullscreen"]:focus-visible {
+  outline: 2px solid var(--focus-outline-color) !important;
+  outline-offset: 1px !important;
+}
+
+
+#color-revealer {
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  overflow: hidden;
+}
+
+body:hover #color-revealer {
+    opacity: 1;
+}
+
+.plyr {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 450px; /* UPDATED: Increased by 50% from 300px for desktop */
+  background: var(--interactive-bg);
+  border-radius: 8px;
+  color: var(--text-color);
+  z-index: 100;
+  cursor: pointer !important;
+}
+
+.plyr--audio .plyr__controls {
+  background: transparent;
+}
+
+.plyr--audio .plyr__controls .plyr__control svg {
+  color: var(--text-color);
+}
+
+.plyr--audio .plyr__progress__buffer,
+.plyr--audio .plyr__volume--display {
+  background: var(--plyr-color-main);
+}
+
+.plyr--audio .plyr__progress--played,
+.plyr--audio .plyr__volume--value {
+  background: var(--plyr-color-main);
+}
+
+.plyr--audio .plyr__control:hover,
+.plyr--audio .plyr__control[aria-expanded="true"] {
+  background: var(--plyr-color-main);
+  color: var(--text-color);
+}
+
+
+.gallery {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+.slide {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+  overflow: hidden;
+}
+
+.slide.current-slide {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
+}
+
+.background-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+}
+
+.menu-button, .nav-button, .sheet-close, .plyr, input, textarea, button[type="submit"], #work-track-list li {
+  cursor: pointer !important;
+}
+#work-track-list li[aria-current="true"] {
+  cursor: default !important; /* Current track not clickable again to do nothing */
+}
+input, textarea {
+  cursor: text !important;
+}
+
+.nav-button {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--interactive-bg);
+  color: var(--text-color);
+  border: none;
+  padding: 15px;
+  font-size: 24px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out 1s forwards;
+  transition: background 0.3s, transform 0.2s ease-out;
+  z-index: 100;
+}
+
+.nav-button:hover {
+  background: var(--interactive-bg-hover);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.nav-button:active {
+  background: var(--interactive-bg-active);
+  transform: translateY(-50%) scale(0.95);
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+#prev { left: 20px; }
+#next { right: 20px; }
+
+.side-buttons {
+  position: fixed;
+  left: 20px;
+  top: 15%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  z-index: 100;
+}
+
+.menu-button {
+  background: var(--interactive-bg);
+  color: var(--text-color);
+  border: none;
+  padding: 15px 25px;
+  font-size: 16px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  transition: background 0.3s, transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateX(-20px);
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+@keyframes slideIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.menu-button:nth-child(1) { animation-delay: 0.2s; }
+.menu-button:nth-child(2) { animation-delay: 0.4s; }
+.menu-button:nth-child(3) { animation-delay: 0.6s; }
+
+.menu-button:hover {
+  background: var(--interactive-bg-hover);
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.menu-button:active {
+  background: var(--interactive-bg-active);
+  transform: scale(0.98);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.bottom-sheet {
+  position: fixed;
+  bottom: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--interactive-bg-hover); /* Slightly more opaque base */
+  color: var(--text-color);
+  padding: 30px;
+  transition: bottom 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother ease */
+  z-index: 1000;
+  width: 800px;
+  max-width: 95vw; /* Ensure it doesn't overflow small viewports on desktop */
+  height: 420px;
+  max-height: 70vh; /* Prevent excessive height */
+  border-radius: 0;
+  box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
+  box-sizing: border-box;
+  display: flex; /* For easier content management */
+  flex-direction: column;
+}
+
+.bottom-sheet.visible {
+  bottom: 0;
+}
+
+.sheet-content {
+  flex-grow: 1; /* Allow content to take available space */
+  max-width: 100%;
+  margin: 0;
+  position: relative;
+  padding-top: 10px; /* Reduced top padding */
+  padding-left: 0; /* Padding handled by parent now */
+  padding-right: 0;
+  overflow-y: auto; /* Enable scrolling for content */
+  height: 100%; /* Take full height of parent's padding box */
+  box-sizing: border-box;
+}
+
+.sheet-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 1px;
+  background-color: var(--text-color); /* MODIFIED: Changed to var(--text-color) for a white line */
+  opacity: 0;
+  transition: opacity 0.3s, width 0.3s;
+}
+
+.bottom-sheet:hover .sheet-content::after {
+  opacity: 1;
+  width: calc(100% - 0px); /* Full width of content area - This is suitable for your current padding */
+}
+
+.sheet-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  padding: 0; /* Remove default padding */
+}
+
+.sheet-close:hover {
+  color: #ccc;
+}
+
+.sheet-content h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+}
+
+.sheet-content p {
+  line-height: 1.6;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 300;
+  margin-bottom: 15px;
+}
+#track-title-info {
+  font-weight: 400;
+  margin-bottom: 15px;
+}
+#track-title {
+  font-style: italic;
+}
+
+
+.sheet-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0; /* Add some bottom margin */
+}
+
+.sheet-content li {
+  padding: 10px 15px;
+  margin: 0; /* Remove default margin */
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s ease;
+}
+.sheet-content li:last-child {
+  border-bottom: none;
+}
+
+.sheet-content li:hover:not(.current-track-item) {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sheet-content li.current-track-item {
+  background-color: var(--plyr-color-main);
+  color: var(--text-color);
+  font-weight: 400;
+}
+.sheet-content li.current-track-item:hover {
+  background-color: var(--plyr-color-main); /* Keep same bg on hover */
+}
+
+
+.sheet-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sheet-content input,
+.sheet-content textarea {
+  padding: 10px;
+  border: 1px solid rgba(72, 97, 107, 0.5);
+  background: rgba(0, 0, 0, 0.2); /* Darker input background */
+  color: var(--text-color);
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 300;
+}
+
+.sheet-content input::placeholder,
+.sheet-content textarea::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sheet-content button[type="submit"] {
+  background: var(--interactive-bg);
+  color: var(--text-color);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  text-transform: uppercase;
+  transition: background 0.3s;
+}
+
+.sheet-content button[type="submit"]:hover {
+  background: var(--interactive-bg-hover);
+}
+
+/* Media Queries for Mobile Responsiveness */
+@media (max-width: 768px) {
+  html, body {
+      font-size: 17px; /* Slightly reduced for better fit */
+      cursor: default !important;
+  }
+
+  #color-revealer {
+      display: none !important;
+  }
+
+  .nav-button {
+    font-size: 36px; /* Slightly reduced */
+    padding: 15px; /* Slightly reduced */
+    bottom: 12%; /* Adjusted */
+    top: auto;
+    animation: fadeIn 0.5s ease-out 0.5s forwards;
+  }
+
+  #prev { left: 20px; } /* Closer to edge */
+  #next { right: 20px; }
+
+  .side-buttons {
+    width: 100%;
+    flex-direction: row;
+    top: 0;
+    left: 0;
+    justify-content: space-around;
+    padding: 8px 0; /* Reduced padding */
+    background: rgba(72, 97, 107, 0.8); /* More opaque bar for mobile */
+    z-index: 1000;
+  }
+
+  .menu-button {
+    padding: 12px; /* Reduced padding */
+    font-size: 14px; /* Reduced font size */
+    flex: 1;
+    text-align: center;
+    transform: none;
+    animation: none;
+    opacity: 1;
+    position: relative;
+    z-index: 1001;
+    background: transparent;
+    box-shadow: none;
+  }
+  .menu-button:hover {
+    background: rgba(255,255,255,0.1);
+    transform: none;
+    box-shadow: none;
+  }
+
+
+  .plyr {
+    width: 90%; /* Mobile width should override the 450px */
+    bottom: 10px;
+    right: 5%;
+    z-index: 1000;
+  }
+
+  .bottom-sheet {
+    width: 100%;
+    max-width: 100%;
+    height: 70vh;
+    padding: 15px; /* Existing padding */
+    left: 0;
+    transform: none;
+    z-index: 1100;
+    box-sizing: border-box;
+    background: rgba(72, 97, 107, 0.95);
+    border-radius: 0;
+  }
+
+   .bottom-sheet.visible {
+     bottom: 0;
+   }
+
+  .sheet-content {
+    padding: 0;
+    padding-top: 5px; /* Small top padding */
+    padding-bottom: 40px; /* Add padding at the bottom to avoid overlap with new close button */
+  }
+
+  /* --- MODIFICATION FOR CLOSE BUTTON --- */
+  .sheet-close {
+    top: auto; /* Remove default top positioning */
+    bottom: 10px; /* Position from the bottom of the sheet */
+    right: 10px;  /* Position from the right of the sheet */
+    width: 36px;  /* Make it a bit more tappable */
+    height: 36px;
+    font-size: 24px;
+    /* z-index: 1001; is already set and should be fine */
+  }
+  /* --- END OF MODIFICATION --- */
+
+
+  .sheet-content h2 {
+    font-size: 22px; /* Adjusted */
+    margin-bottom: 15px; /* Adjusted */
+  }
+  #track-title-info {
+    font-size: 16px;
+  }
+
+
+  .sheet-content p, .sheet-content li {
+    font-size: 16px; /* Adjusted */
+  }
+  .sheet-content li {
+    padding: 12px 10px; /* Adjusted */
+  }
+
+  .sheet-content input,
+  .sheet-content textarea {
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sheet-content button[type="submit"] {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 16px;
+  }
+}
