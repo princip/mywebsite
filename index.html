@@ -7,10 +7,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <link rel="stylesheet" href="styles.css">
+
   <!-- Add GSAP library (Optional, but useful for smooth animations if needed later) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 <body>
+  <!-- The unmute overlay for first-time visitors -->
+  <div id="unmute-overlay">
+    <h1>ENTER</h1>
+  </div>
+
   <!-- The Bubble Cursor -->
   <div id="color-revealer"></div>
 
@@ -24,20 +30,20 @@
     <div class="slide" id="slide3">
       <canvas class="background-canvas"></canvas>
     </div>
-    <!-- NEW SLIDES ADDED HERE -->
     <div class="slide" id="slide4">
       <canvas class="background-canvas"></canvas>
     </div>
     <div class="slide" id="slide5">
       <canvas class="background-canvas"></canvas>
     </div>
-    <!-- END OF NEW SLIDES -->
   </div>
 
   <div class="side-buttons">
     <button class="menu-button" id="about-btn">ABOUT</button>
     <button class="menu-button" id="work-btn">WORK</button>
     <button class="menu-button" id="contact-btn">CONTACT</button>
+    <!-- NEW: The reset button -->
+    <button class="menu-button" id="reset-btn">RESET</button>
   </div>
 
   <button class="nav-button" id="prev" aria-label="Previous Slide">‹</button>
