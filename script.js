@@ -20,7 +20,6 @@ const contactForm = document.getElementById('contact-form');
 const workTrackListElement = document.getElementById('work-track-list');
 const trackTitleElement = document.getElementById('track-title');
 const unmuteOverlay = document.getElementById('unmute-overlay');
-// NEW: Get the reset button element
 const resetBtn = document.getElementById('reset-btn');
 
 // --- State Variables ---
@@ -193,7 +192,32 @@ function showSlideVisuals(targetVisualIndex) { if (targetVisualIndex === current
 prevButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex - 1 + slides.length) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 nextButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex + 1) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 const sheets = { about: document.getElementById('about-sheet'), work: document.getElementById('work-sheet'), contact: document.getElementById('contact-sheet')}; let activeSheet = null; document.querySelectorAll('.sheet-close').forEach(btn => btn.addEventListener('click', closeAllSheets)); document.getElementById('about-btn').addEventListener('click', () => toggleSheet('about')); document.getElementById('work-btn').addEventListener('click', () => toggleSheet('work')); document.getElementById('contact-btn').addEventListener('click', () => toggleSheet('contact')); function toggleSheet(sheetName) { const sheetElement = sheets[sheetName]; const isVisible = sheetElement.classList.contains('visible'); closeAllSheets(); if (!isVisible) { sheetElement.classList.add('visible'); activeSheet = sheetElement; const focusable = sheetElement.querySelectorAll('h2, li[tabindex="0"], input, textarea, button, .sheet-close'); if (focusable.length) focusable[0].focus(); } } function closeAllSheets() { Object.values(sheets).forEach(s => s.classList.remove('visible')); activeSheet = null; } document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && activeSheet) closeAllSheets(); });
-contactForm.addEventListener('submit', function(e) { e.preventDefault(); const fd = new FormData(this); const mailtoLink = `mailto:louis@louispapalouis.com?subject=${encodeURIComponent(`New message from ${fd.get('name')}`)}&body=${encodeURIComponent(`Name: ${fd.get('name')}%0D%0AEmail: ${fd.get('email')}%0D%0A%0D%0AMessage:%0D%0A${fd.get('message')}`)}`; window.location.href = mailtoLink; alert('Thank you for reaching out!.'); closeAllSheets(); this.reset(); });
+
+// MODIFIED: This entire function is updated to handle the new mailto link behavior.
+contactForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const fd = new FormData(this);
+    const name = fd.get('name');
+    const email = fd.get('email');
+    const message = fd.get('message');
+
+    // Create a subject that includes the sender's name and email for context.
+    const subject = `New message from ${name} (${email})`;
+
+    // The body will now ONLY be the message the user typed.
+    const body = message;
+
+    // Construct the mailto link, making sure to encode components for URL safety.
+    const mailtoLink = `mailto:louis@louispapalouis.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    // Open the user's email client in a NEW tab/window.
+    window.open(mailtoLink);
+    
+    alert('Thank you for reaching out!');
+    closeAllSheets();
+    this.reset();
+});
+
 function populateWorkSheet() { workTrackListElement.innerHTML = ''; allUniqueTracks.forEach((track, globalIdx) => { const li = document.createElement('li'); li.textContent = track.title; li.dataset.globalTrackIndex = globalIdx; li.setAttribute('role', 'button'); li.setAttribute('tabindex', '0'); li.addEventListener('click', () => handleWorkListItemClick(parseInt(li.dataset.globalTrackIndex))); li.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleWorkListItemClick(parseInt(li.dataset.globalTrackIndex)); } }); workTrackListElement.appendChild(li); }); }
 function handleWorkListItemClick(globalTrackIdxToPlay) { loadGlobalTrack(globalTrackIdxToPlay, true); }
 function updateWorkSheetHighlightByGlobalIndex(playingGlobalTrackIdx) { const allTrackItems = workTrackListElement.querySelectorAll('li'); allTrackItems.forEach(item => { item.classList.remove('current-track-item'); item.removeAttribute('aria-current'); if (parseInt(item.dataset.globalTrackIndex) === playingGlobalTrackIdx) { item.classList.add('current-track-item'); item.setAttribute('aria-current', 'true'); if (sheets.work.classList.contains('visible')) { item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } } }); }
@@ -206,33 +230,23 @@ function isMobileDevice() { return window.innerWidth <= 768; }
 function updateBubbleSize() { if (colorRevealer) { const diameter = currentRevealRadius * 2; colorRevealer.style.width = `${diameter}px`; colorRevealer.style.height = `${diameter}px`; } }
 function handleBubbleResize(event) { if (!experienceHasStarted || isMobileDevice()) return; event.preventDefault(); const delta = event.deltaY * BUBBLE_RESIZE_SENSITIVITY; let newTargetRadius = targetRevealRadius - delta; targetRevealRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newTargetRadius)); }
 
-// NEW: Function to reset the color reveal with a fade effect.
 function resetColorReveal() {
-    if (isMobileDevice()) return; // No canvas effect on mobile
+    if (isMobileDevice()) return;
 
     const currentSlideElement = slides[currentVisualSlideIndex];
     const canvas = currentSlideElement.querySelector('.background-canvas');
     if (!canvas) return;
 
-    // 1. Set a transition on the canvas element's opacity.
     canvas.style.transition = 'opacity 0.4s ease-in-out';
-    // 2. Fade the canvas out.
     canvas.style.opacity = 0;
 
-    // 3. Listen for the fade-out to finish.
     canvas.addEventListener('transitionend', () => {
-        // 4. Force a full reload of the canvas, which redraws the initial grayscale state.
-        // This is a clean way to reuse existing logic.
-        initSlideCanvas(currentSlideElement, currentVisualSlideIndex, true); // forceReload = true
-
-        // 5. Use a small timeout to allow the browser to repaint the newly drawn canvas
-        // before we start fading it back in.
+        initSlideCanvas(currentSlideElement, currentVisualSlideIndex, true);
         setTimeout(() => {
-            // 6. Fade the freshly reset canvas back into view.
             canvas.style.opacity = 1;
         }, 50);
 
-    }, { once: true }); // The listener automatically removes itself after running once.
+    }, { once: true });
 }
 
 document.addEventListener('mousemove', updateMousePosition);
@@ -240,7 +254,6 @@ document.addEventListener('touchmove', updateTouchPosition, { passive: true });
 document.addEventListener('touchstart', updateTouchPosition, { passive: true });
 window.addEventListener('resize', handleResize);
 document.addEventListener('wheel', handleBubbleResize, { passive: false });
-// NEW: Add the click event listener for the new reset button.
 if (resetBtn) {
     resetBtn.addEventListener('click', resetColorReveal);
 }
