@@ -2,7 +2,6 @@
 
 // --- Configuration ---
 const INITIAL_REVEAL_RADIUS = 100;
-// UPDATED: New min/max values based on the request.
 const MAX_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 1.20; // Max size is 20% bigger than default
 const MIN_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 0.05; // Min size is 5% of default
 const BUBBLE_RESIZE_SENSITIVITY = 0.3;
@@ -43,7 +42,7 @@ let touchStartY = 0;
 let currentRevealRadius = INITIAL_REVEAL_RADIUS;
 let targetRevealRadius = INITIAL_REVEAL_RADIUS;
 
-// NEW: State variables for pinch-to-zoom
+// State variables for pinch-to-zoom
 let isPinching = false;
 let initialPinchDistance = 0;
 let pinchStartRadius = 0;
@@ -148,10 +147,16 @@ player.on('play', () => {
 
 function initSlideCanvas(slideElement, index, forceReload = false) { const canvas = slideElement.querySelector('.background-canvas'); if (!canvas) return false; if (forceReload && canvasData.has(slideElement)) { const oldData = canvasData.get(slideElement); if (oldData.ctx) oldData.ctx.clearRect(0, 0, oldData.canvas.width, oldData.canvas.height); if (oldData.colorCtx) oldData.colorCtx.clearRect(0, 0, oldData.colorCanvas.width, oldData.colorCanvas.height); canvasData.delete(slideElement); } if (canvasData.has(slideElement) && !forceReload) { const data = canvasData.get(slideElement); if (index === currentVisualSlideIndex) { currentCanvas = data.canvas; currentCtx = data.ctx; currentColorCanvas = data.colorCanvas; currentColorCtx = data.colorCtx; } return true; } const ctx = canvas.getContext('2d', { willReadFrequently: true }); const colorCanvas = document.createElement('canvas'); const colorCtx = colorCanvas.getContext('2d'); const img = new Image(); img.crossOrigin = "Anonymous"; const slideDataEntry = { canvas, ctx, colorCanvas, colorCtx, img: null }; canvasData.set(slideElement, slideDataEntry); img.onload = () => { slideDataEntry.img = img; sizeAndDrawInitial(slideElement, img); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.onerror = (err) => { console.error(`Failed to load image for slide ${index}:`, getImageUrlForSlide(index), err); sizeAndDrawInitial(slideElement, null); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.src = getImageUrlForSlide(index); return false; }
 function sizeAndDrawInitial(slideElement, img) { const data = canvasData.get(slideElement); if (!data || !data.canvas || !data.ctx || !data.colorCanvas || !data.colorCtx) { const fallbackCanvas = slideElement.querySelector('.background-canvas'); if (fallbackCanvas) { const fallbackCtx = fallbackCanvas.getContext('2d'); fallbackCanvas.width = slideElement.offsetWidth || window.innerWidth; fallbackCanvas.height = slideElement.offsetHeight || window.innerHeight; if (fallbackCtx) { fallbackCtx.fillStyle = '#1a1a1a'; fallbackCtx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height); } } return; } const { canvas, ctx, colorCanvas, colorCtx } = data; const containerWidth = slideElement.offsetWidth || window.innerWidth; const containerHeight = slideElement.offsetHeight || window.innerHeight; if (canvas.width !== containerWidth || canvas.height !== containerHeight || canvas.width === 0) { canvas.width = containerWidth; canvas.height = containerHeight; } if (colorCanvas.width !== containerWidth || colorCanvas.height !== containerHeight || colorCanvas.width === 0) { colorCanvas.width = containerWidth; colorCanvas.height = containerHeight; } ctx.clearRect(0, 0, canvas.width, canvas.height); colorCtx.clearRect(0, 0, colorCanvas.width, colorCanvas.height); if (!img || !img.complete || typeof img.naturalWidth === "undefined" || img.naturalWidth === 0) { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; } const imgAspect = img.naturalWidth / img.naturalHeight; const containerAspect = canvas.width / canvas.height; let drawWidth, drawHeight, drawX, drawY; if (imgAspect > containerAspect) { drawHeight = canvas.height; drawWidth = drawHeight * imgAspect; drawX = (canvas.width - drawWidth) / 2; drawY = 0; } else { drawWidth = canvas.width; drawHeight = drawWidth / imgAspect; drawX = 0; drawY = (canvas.height - drawHeight) / 2; } colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'grayscale(100%)'; ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'none'; }
+
+// --- MODIFIED FUNCTION ---
 function revealLoop() {
-    const posLerpAmount = BUBBLE_SLOW_FOLLOW_SPEED;
-    revealerX += (mouseX - revealerX) * posLerpAmount;
-    revealerY += (mouseY - revealerY) * posLerpAmount;
+    // ONLY update the bubble's position if the user is NOT pinching.
+    if (!isPinching) {
+        const posLerpAmount = BUBBLE_SLOW_FOLLOW_SPEED;
+        revealerX += (mouseX - revealerX) * posLerpAmount;
+        revealerY += (mouseY - revealerY) * posLerpAmount;
+    }
+
     colorRevealer.style.transform = `translate(${revealerX}px, ${revealerY}px) translate(-50%, -50%)`;
     
     // Only LERP size for mouse wheel, not for pinch-zoom
@@ -196,6 +201,7 @@ function revealLoop() {
     currentCtx.restore();
     animationFrameId = requestAnimationFrame(revealLoop);
 }
+
 function showSlideVisuals(targetVisualIndex) { if (targetVisualIndex === currentVisualSlideIndex && slides[targetVisualIndex].classList.contains('current-slide') && canvasData.has(slides[targetVisualIndex])) { if (experienceHasStarted) startRevealAnimation(); return; } currentVisualSlideIndex = targetVisualIndex; slides.forEach((slide, i) => { if (i === currentVisualSlideIndex) { slide.classList.add('current-slide'); initSlideCanvas(slide, i, false); } else { slide.classList.remove('current-slide'); } }); if (experienceHasStarted) { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; const activeSlideData = canvasData.get(slides[currentVisualSlideIndex]); if (activeSlideData && activeSlideData.ctx && activeSlideData.colorCanvas && activeSlideData.colorCtx) { currentCanvas = activeSlideData.canvas; currentCtx = activeSlideData.ctx; currentColorCanvas = activeSlideData.colorCanvas; currentColorCtx = activeSlideData.colorCtx; startRevealAnimation(); } } }
 prevButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex - 1 + slides.length) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 nextButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex + 1) % slides.length; showSlideVisuals(newVisualSlideIndex); });
@@ -241,7 +247,7 @@ function updateBubbleSize() { if (colorRevealer) { const diameter = currentRevea
 function handleBubbleResize(event) { if (!experienceHasStarted || isMobileDevice()) return; event.preventDefault(); const delta = event.deltaY * BUBBLE_RESIZE_SENSITIVITY; let newTargetRadius = targetRevealRadius - delta; targetRevealRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newTargetRadius)); }
 function resetColorReveal() { closeAllSheets(); const currentSlideElement = slides[currentVisualSlideIndex]; const canvas = currentSlideElement.querySelector('.background-canvas'); if (!canvas) return; canvas.style.transition = 'opacity 0.4s ease-in-out'; canvas.style.opacity = 0; canvas.addEventListener('transitionend', () => { initSlideCanvas(currentSlideElement, currentVisualSlideIndex, true); setTimeout(() => { canvas.style.opacity = 1; }, 50); }, { once: true }); }
 
-// --- NEW TOUCH HANDLERS FOR PINCH-ZOOM ---
+// --- TOUCH HANDLERS FOR PINCH-ZOOM ---
 function handleTouchStart(event) {
     if (event.touches.length === 2) {
         event.preventDefault(); // Prevent page zoom
@@ -286,7 +292,6 @@ function handleTouchEnd(event) {
 
 // --- EVENT LISTENERS ---
 document.addEventListener('mousemove', updateRevealerPosition);
-// UPDATED: Replace old touch listeners with the new, more capable ones.
 document.addEventListener('touchstart', handleTouchStart, { passive: false });
 document.addEventListener('touchmove', handleTouchMove, { passive: false });
 document.addEventListener('touchend', handleTouchEnd);
