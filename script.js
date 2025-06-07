@@ -145,21 +145,15 @@ player.on('play', () => {
     }
 });
 
-function initSlideCanvas(slideElement, index, forceReload = false) { const canvas = slideElement.querySelector('.background-canvas'); if (!canvas) return false; if (forceReload && canvasData.has(slideElement)) { const oldData = canvasData.get(slideElement); if (oldData.ctx) oldData.ctx.clearRect(0, 0, oldData.canvas.width, oldData.canvas.height); if (oldData.colorCtx) oldData.colorCtx.clearRect(0, 0, oldData.colorCanvas.width, oldData.colorCanvas.height); canvasData.delete(slideElement); } if (canvasData.has(slideElement) && !forceReload) { const data = canvasData.get(slideElement); if (index === currentVisualSlideIndex) { currentCanvas = data.canvas; currentCtx = data.ctx; currentColorCanvas = data.colorCanvas; currentColorCtx = data.colorCtx; } return true; } const ctx = canvas.getContext('2d', { willReadFrequently: true }); const colorCanvas = document.createElement('canvas'); const colorCtx = colorCanvas.getContext('2d'); const img = new Image(); img.crossOrigin = "Anonymous"; const slideDataEntry = { canvas, ctx, colorCanvas, colorCtx, img: null }; canvasData.set(slideElement, slideDataEntry); img.onload = () => { slideDataEntry.img = img; sizeAndDrawInitial(slideElement, img); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.onerror = (err) => { console.error(`Failed to load image for slide ${index}:`, getImageUrlForSlide(index), err); sizeAndDrawInitial(slideElement, null); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.src = getImageUrlForSlide(index); return false; }
+function initSlideCanvas(slideElement, index, forceReload = false) { const canvas = slideElement.querySelector('.background-canvas'); if (!canvas) return false; if (forceReload && canvasData.has(slideElement)) { const oldData = canvasData.get(slideElement); if (oldData.ctx) oldData.ctx.clearRect(0, 0, oldData.canvas.width, oldData.canvas.height); if (oldData.colorCtx) oldData.colorCtx.clearRect(0, 0, oldData.colorCanvas.width, oldData.colorCanvas.height); canvasData.delete(slideElement); } if (canvasData.has(slideElement) && !forceReload) { const data = canvasData.get(slideElement); if (index === currentVisualSlideIndex) { currentCanvas = data.canvas; currentCtx = data.ctx; currentColorCanvas = data.colorCanvas; currentColorCtx = data.colorCtx; } return true; } const ctx = canvas.getContext('2d', { willReadFrequently: true }); const colorCanvas = document.createElement('canvas'); const colorCtx = colorCanvas.getContext('2d'); const img = new Image(); img.crossOrigin = "Anonymous"; const slideDataEntry = { canvas, ctx, colorCanvas, colorCtx, img: null }; canvasData.set(slideElement, slideDataEntry); img.onload = () => { slideDataEntry.img = img; sizeAndDrawInitial(slideElement, img); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = a.colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.onerror = (err) => { console.error(`Failed to load image for slide ${index}:`, getImageUrlForSlide(index), err); sizeAndDrawInitial(slideElement, null); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.src = getImageUrlForSlide(index); return false; }
 function sizeAndDrawInitial(slideElement, img) { const data = canvasData.get(slideElement); if (!data || !data.canvas || !data.ctx || !data.colorCanvas || !data.colorCtx) { const fallbackCanvas = slideElement.querySelector('.background-canvas'); if (fallbackCanvas) { const fallbackCtx = fallbackCanvas.getContext('2d'); fallbackCanvas.width = slideElement.offsetWidth || window.innerWidth; fallbackCanvas.height = slideElement.offsetHeight || window.innerHeight; if (fallbackCtx) { fallbackCtx.fillStyle = '#1a1a1a'; fallbackCtx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height); } } return; } const { canvas, ctx, colorCanvas, colorCtx } = data; const containerWidth = slideElement.offsetWidth || window.innerWidth; const containerHeight = slideElement.offsetHeight || window.innerHeight; if (canvas.width !== containerWidth || canvas.height !== containerHeight || canvas.width === 0) { canvas.width = containerWidth; canvas.height = containerHeight; } if (colorCanvas.width !== containerWidth || colorCanvas.height !== containerHeight || colorCanvas.width === 0) { colorCanvas.width = containerWidth; colorCanvas.height = containerHeight; } ctx.clearRect(0, 0, canvas.width, canvas.height); colorCtx.clearRect(0, 0, colorCanvas.width, colorCanvas.height); if (!img || !img.complete || typeof img.naturalWidth === "undefined" || img.naturalWidth === 0) { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; } const imgAspect = img.naturalWidth / img.naturalHeight; const containerAspect = canvas.width / canvas.height; let drawWidth, drawHeight, drawX, drawY; if (imgAspect > containerAspect) { drawHeight = canvas.height; drawWidth = drawHeight * imgAspect; drawX = (canvas.width - drawWidth) / 2; drawY = 0; } else { drawWidth = canvas.width; drawHeight = drawWidth / imgAspect; drawX = 0; drawY = (canvas.height - drawHeight) / 2; } colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'grayscale(100%)'; ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'none'; }
-
-// --- MODIFIED FUNCTION ---
 function revealLoop() {
-    // ONLY update the bubble's position if the user is NOT pinching.
     if (!isPinching) {
         const posLerpAmount = BUBBLE_SLOW_FOLLOW_SPEED;
         revealerX += (mouseX - revealerX) * posLerpAmount;
         revealerY += (mouseY - revealerY) * posLerpAmount;
     }
-
     colorRevealer.style.transform = `translate(${revealerX}px, ${revealerY}px) translate(-50%, -50%)`;
-    
-    // Only LERP size for mouse wheel, not for pinch-zoom
     if (!isPinching) {
         const sizeDifference = targetRevealRadius - currentRevealRadius;
         if (Math.abs(sizeDifference) > 0.01) {
@@ -167,29 +161,24 @@ function revealLoop() {
             updateBubbleSize();
         }
     }
-    
     if (!currentCtx || !currentColorCanvas || !currentColorCtx) {
         animationFrameId = requestAnimationFrame(revealLoop);
         return;
     }
-    
     currentCtx.save();
     currentCtx.beginPath();
     currentCtx.arc(revealerX, revealerY, currentRevealRadius, 0, Math.PI * 2);
     currentCtx.clip();
-
     const sx = revealerX - currentRevealRadius;
     const sy = revealerY - currentRevealRadius;
     const sWidth = currentRevealRadius * 2;
     const sHeight = currentRevealRadius * 2;
-    
     const clampedSx = Math.max(0, Math.min(sx, currentColorCanvas.width - 1));
     const clampedSy = Math.max(0, Math.min(sy, currentColorCanvas.height - 1));
     let clampedSWidth = sWidth;
     if (clampedSx + clampedSWidth > currentColorCanvas.width) clampedSWidth = currentColorCanvas.width - clampedSx;
     let clampedSHeight = sHeight;
     if (clampedSy + clampedSHeight > currentColorCanvas.height) clampedSHeight = currentColorCanvas.height - clampedSy;
-    
     if (clampedSWidth > 0 && clampedSHeight > 0) {
         try {
             currentCtx.drawImage(currentColorCanvas, clampedSx, clampedSy, clampedSWidth, clampedSHeight, clampedSx, clampedSy, clampedSWidth, clampedSHeight);
@@ -197,11 +186,9 @@ function revealLoop() {
             console.error("Error drawing image in revealLoop:", e);
         }
     }
-    
     currentCtx.restore();
     animationFrameId = requestAnimationFrame(revealLoop);
 }
-
 function showSlideVisuals(targetVisualIndex) { if (targetVisualIndex === currentVisualSlideIndex && slides[targetVisualIndex].classList.contains('current-slide') && canvasData.has(slides[targetVisualIndex])) { if (experienceHasStarted) startRevealAnimation(); return; } currentVisualSlideIndex = targetVisualIndex; slides.forEach((slide, i) => { if (i === currentVisualSlideIndex) { slide.classList.add('current-slide'); initSlideCanvas(slide, i, false); } else { slide.classList.remove('current-slide'); } }); if (experienceHasStarted) { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; const activeSlideData = canvasData.get(slides[currentVisualSlideIndex]); if (activeSlideData && activeSlideData.ctx && activeSlideData.colorCanvas && activeSlideData.colorCtx) { currentCanvas = activeSlideData.canvas; currentCtx = activeSlideData.ctx; currentColorCanvas = activeSlideData.colorCanvas; currentColorCtx = activeSlideData.colorCtx; startRevealAnimation(); } } }
 prevButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex - 1 + slides.length) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 nextButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex + 1) % slides.length; showSlideVisuals(newVisualSlideIndex); });
@@ -214,7 +201,6 @@ function handleSheetTouchStart(event) { if (!isMobileDevice() || !activeSheet ||
 function startRevealAnimation() { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; if (currentCtx && currentColorCanvas && currentColorCtx) { animationFrameId = requestAnimationFrame(revealLoop); } }
 function updateRevealerPosition(event) {
     let pageX, pageY, target;
-
     if (event.touches && event.touches.length > 0) {
         pageX = event.touches[0].pageX;
         pageY = event.touches[0].pageY;
@@ -223,22 +209,16 @@ function updateRevealerPosition(event) {
         pageX = event.pageX;
         pageY = event.pageY;
         target = event.target;
-    } else {
-        return;
-    }
-
+    } else { return; }
     mouseX = pageX;
     mouseY = pageY;
-
     if (!target) {
         colorRevealer.style.opacity = '1';
         return;
     }
-
     const interactive = '.menu-button, .nav-button, .plyr, .sheet-content, .sheet-close, input, textarea, button, #work-track-list li, #unmute-overlay';
     const isOverInteractive = target.closest(interactive);
     const isReadyForDisplay = experienceHasStarted && (animationFrameId || (currentCtx && currentColorCanvas && currentColorCtx));
-    
     colorRevealer.style.opacity = isOverInteractive ? '0' : (isReadyForDisplay ? '1' : '0');
 }
 function handleResize() { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; slides.forEach((slide, index) => initSlideCanvas(slide, index, true)); const currentSlideEl = slides[currentVisualSlideIndex]; if (canvasData.has(currentSlideEl)) { const data = canvasData.get(currentSlideEl); if (data && (currentCanvas !== data.canvas || currentCtx !== data.ctx || currentColorCanvas !== data.colorCanvas || currentColorCtx !== data.colorCtx) ) { currentCanvas = data.canvas; currentCtx = data.ctx; currentColorCanvas = data.colorCanvas; currentColorCtx = data.colorCtx; } } if (experienceHasStarted) startRevealAnimation(); }
@@ -246,6 +226,21 @@ function isMobileDevice() { return window.innerWidth <= 768; }
 function updateBubbleSize() { if (colorRevealer) { const diameter = currentRevealRadius * 2; colorRevealer.style.width = `${diameter}px`; colorRevealer.style.height = `${diameter}px`; } }
 function handleBubbleResize(event) { if (!experienceHasStarted || isMobileDevice()) return; event.preventDefault(); const delta = event.deltaY * BUBBLE_RESIZE_SENSITIVITY; let newTargetRadius = targetRevealRadius - delta; targetRevealRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newTargetRadius)); }
 function resetColorReveal() { closeAllSheets(); const currentSlideElement = slides[currentVisualSlideIndex]; const canvas = currentSlideElement.querySelector('.background-canvas'); if (!canvas) return; canvas.style.transition = 'opacity 0.4s ease-in-out'; canvas.style.opacity = 0; canvas.addEventListener('transitionend', () => { initSlideCanvas(currentSlideElement, currentVisualSlideIndex, true); setTimeout(() => { canvas.style.opacity = 1; }, 50); }, { once: true }); }
+
+// --- NEW HELPER FUNCTION FOR FULLSCREEN ---
+function enterFullscreen(element) {
+  if (element.requestFullscreen) {
+    element.requestFullscreen();
+  } else if (element.webkitRequestFullscreen) { // Safari
+    element.webkitRequestFullscreen();
+  } else if (element.mozRequestFullScreen) { // Firefox
+    element.mozRequestFullScreen();
+  } else if (element.msRequestFullscreen) { // IE/Edge
+    element.msRequestFullscreen();
+  } else {
+    console.log('Fullscreen API is not supported by this browser.');
+  }
+}
 
 // --- TOUCH HANDLERS FOR PINCH-ZOOM ---
 function handleTouchStart(event) {
@@ -260,7 +255,6 @@ function handleTouchStart(event) {
         updateRevealerPosition(event);
     }
 }
-
 function handleTouchMove(event) {
     if (isPinching && event.touches.length === 2) {
         event.preventDefault(); // Prevent page zoom
@@ -268,27 +262,21 @@ function handleTouchMove(event) {
         const t2 = event.touches[1];
         const currentPinchDistance = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
         const scaleFactor = currentPinchDistance / initialPinchDistance;
-
         let newRadius = pinchStartRadius * scaleFactor;
-        // Clamp the radius to the min/max values
         newRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newRadius));
-        
-        // Apply the new radius directly for immediate feedback
         currentRevealRadius = newRadius;
-        targetRevealRadius = newRadius; // Sync target to prevent LERP fighting it
+        targetRevealRadius = newRadius;
         updateBubbleSize();
     } else if (!isPinching) {
         updateRevealerPosition(event);
     }
 }
-
 function handleTouchEnd(event) {
     if (isPinching && event.touches.length < 2) {
         isPinching = false;
         initialPinchDistance = 0;
     }
 }
-
 
 // --- EVENT LISTENERS ---
 document.addEventListener('mousemove', updateRevealerPosition);
@@ -315,6 +303,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('experience-started');
         startRevealAnimation();
         
+        // --- MODIFICATION HERE ---
+        // On mobile, request fullscreen when the user clicks "ENTER".
+        if (isMobileDevice()) {
+          enterFullscreen(document.documentElement);
+        }
+        // --- END MODIFICATION ---
+
         initialPlayTimeout = setTimeout(() => {
             player.play().catch(e => console.error("Auto-play after delay failed:", e));
             fadeVolumeIn(0.8, 4140); 
