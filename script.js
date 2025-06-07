@@ -145,7 +145,7 @@ player.on('play', () => {
     }
 });
 
-// --- MODIFIED FUNCTION ---
+// --- CORRECTED FUNCTION ---
 function initSlideCanvas(slideElement, index, forceReload = false) { 
     const canvas = slideElement.querySelector('.background-canvas'); 
     if (!canvas) return false; 
@@ -183,7 +183,8 @@ function initSlideCanvas(slideElement, index, forceReload = false) {
         if (index === currentVisualSlideIndex) { 
             currentCanvas = canvas; 
             currentCtx = ctx; 
-            currentColorCanvas = colorCanvas; // THE FIX IS HERE: Was 'a.colorCanvas'
+            // THE FIX IS HERE: Was 'a.colorCanvas', corrected to 'colorCanvas'
+            currentColorCanvas = colorCanvas; 
             currentColorCtx = colorCtx; 
             if (experienceHasStarted) startRevealAnimation(); 
         } 
@@ -204,7 +205,7 @@ function initSlideCanvas(slideElement, index, forceReload = false) {
     img.src = getImageUrlForSlide(index); 
     return false; 
 }
-// --- END MODIFIED FUNCTION ---
+// --- END CORRECTED FUNCTION ---
 
 function sizeAndDrawInitial(slideElement, img) { const data = canvasData.get(slideElement); if (!data || !data.canvas || !data.ctx || !data.colorCanvas || !data.colorCtx) { const fallbackCanvas = slideElement.querySelector('.background-canvas'); if (fallbackCanvas) { const fallbackCtx = fallbackCanvas.getContext('2d'); fallbackCanvas.width = slideElement.offsetWidth || window.innerWidth; fallbackCanvas.height = slideElement.offsetHeight || window.innerHeight; if (fallbackCtx) { fallbackCtx.fillStyle = '#1a1a1a'; fallbackCtx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height); } } return; } const { canvas, ctx, colorCanvas, colorCtx } = data; const containerWidth = slideElement.offsetWidth || window.innerWidth; const containerHeight = slideElement.offsetHeight || window.innerHeight; if (canvas.width !== containerWidth || canvas.height !== containerHeight || canvas.width === 0) { canvas.width = containerWidth; canvas.height = containerHeight; } if (colorCanvas.width !== containerWidth || colorCanvas.height !== containerHeight || colorCanvas.width === 0) { colorCanvas.width = containerWidth; colorCanvas.height = containerHeight; } ctx.clearRect(0, 0, canvas.width, canvas.height); colorCtx.clearRect(0, 0, colorCanvas.width, colorCanvas.height); if (!img || !img.complete || typeof img.naturalWidth === "undefined" || img.naturalWidth === 0) { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; } const imgAspect = img.naturalWidth / img.naturalHeight; const containerAspect = canvas.width / canvas.height; let drawWidth, drawHeight, drawX, drawY; if (imgAspect > containerAspect) { drawHeight = canvas.height; drawWidth = drawHeight * imgAspect; drawX = (canvas.width - drawWidth) / 2; drawY = 0; } else { drawWidth = canvas.width; drawHeight = drawWidth / imgAspect; drawX = 0; drawY = (canvas.height - drawHeight) / 2; } colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'grayscale(100%)'; ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'none'; }
 function revealLoop() {
