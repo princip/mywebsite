@@ -170,20 +170,26 @@ input, textarea { cursor: text !important; }
   .side-buttons {
     width: 100%;
     flex-direction: row;
-    flex-wrap: wrap; /* Allow buttons to wrap to the next line */
-    justify-content: center; /* Center the group of buttons */
-    gap: 5px; /* Add a small gap between buttons */
+    flex-wrap: nowrap; /* Force buttons into a single line */
+    gap: 2px; /* Reduce gap to save space */
     top: 0;
     left: 0;
-    padding: 8px 5px; /* Add horizontal padding to prevent touching edges */
+    padding: 8px 2px;
     background: rgba(72, 97, 107, 0.8);
     z-index: 1000;
   }
   .menu-button {
-    flex: 0 1 auto; /* Allow button to shrink but not grow, with natural width */
-    padding: 10px 15px; /* Adjust padding for a better fit */
-    font-size: 14px;
+    flex: 1 1 0; /* Make buttons share space equally and shrink/grow as needed */
+    padding: 10px 5px; /* Reduce horizontal padding */
     text-align: center;
+    white-space: nowrap; /* Prevent text inside button from wrapping */
+    overflow: hidden; /* Hide anything that still overflows */
+    text-overflow: ellipsis; /* Add "..." if text is still too long */
+
+    /* The key change: Dynamic font size with clamp() */
+    font-size: clamp(11px, 3.5vw, 14px);
+
+    /* Resetting desktop-only styles */
     transform: none;
     animation: none;
     opacity: 1;
