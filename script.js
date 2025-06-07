@@ -140,22 +140,20 @@ player.on('play', () => {
 });
 
 function initSlideCanvas(slideElement, index, forceReload = false) { const canvas = slideElement.querySelector('.background-canvas'); if (!canvas) return false; if (forceReload && canvasData.has(slideElement)) { const oldData = canvasData.get(slideElement); if (oldData.ctx) oldData.ctx.clearRect(0, 0, oldData.canvas.width, oldData.canvas.height); if (oldData.colorCtx) oldData.colorCtx.clearRect(0, 0, oldData.colorCanvas.width, oldData.colorCanvas.height); canvasData.delete(slideElement); } if (canvasData.has(slideElement) && !forceReload) { const data = canvasData.get(slideElement); if (index === currentVisualSlideIndex) { currentCanvas = data.canvas; currentCtx = data.ctx; currentColorCanvas = data.colorCanvas; currentColorCtx = data.colorCtx; } return true; } const ctx = canvas.getContext('2d', { willReadFrequently: true }); const colorCanvas = document.createElement('canvas'); const colorCtx = colorCanvas.getContext('2d'); const img = new Image(); img.crossOrigin = "Anonymous"; const slideDataEntry = { canvas, ctx, colorCanvas, colorCtx, img: null }; canvasData.set(slideElement, slideDataEntry); img.onload = () => { slideDataEntry.img = img; sizeAndDrawInitial(slideElement, img); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.onerror = (err) => { console.error(`Failed to load image for slide ${index}:`, getImageUrlForSlide(index), err); sizeAndDrawInitial(slideElement, null); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.src = getImageUrlForSlide(index); return false; }
-function sizeAndDrawInitial(slideElement, img) { const data = canvasData.get(slideElement); if (!data || !data.canvas || !data.ctx || !data.colorCanvas || !data.colorCtx) { const fallbackCanvas = slideElement.querySelector('.background-canvas'); if (fallbackCanvas) { const fallbackCtx = fallbackCanvas.getContext('2d'); fallbackCanvas.width = slideElement.offsetWidth || window.innerWidth; fallbackCanvas.height = slideElement.offsetHeight || window.innerHeight; if (fallbackCtx) { fallbackCtx.fillStyle = '#1a1a1a'; fallbackCtx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height); } } return; } const { canvas, ctx, colorCanvas, colorCtx } = data; const containerWidth = slideElement.offsetWidth || window.innerWidth; const containerHeight = slideElement.offsetHeight || window.innerHeight; if (canvas.width !== containerWidth || canvas.height !== containerHeight || canvas.width === 0) { canvas.width = containerWidth; canvas.height = containerHeight; } if (colorCanvas.width !== containerWidth || colorCanvas.height !== containerHeight || colorCanvas.width === 0) { colorCanvas.width = containerWidth; colorCanvas.height = containerHeight; } ctx.clearRect(0, 0, canvas.width, canvas.height); colorCtx.clearRect(0, 0, colorCanvas.width, colorCanvas.height); if (!img || !img.complete || typeof img.naturalWidth === "undefined" || img.naturalWidth === 0) { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; } const imgAspect = img.naturalWidth / img.naturalHeight; const containerAspect = canvas.width / canvas.height; let drawWidth, drawHeight, drawX, drawY; if (imgAspect > containerAspect) { drawHeight = canvas.height; drawWidth = drawHeight * imgAspect; drawX = (canvas.width - drawWidth) / 2; drawY = 0; } else { drawWidth = canvas.width; drawHeight = drawWidth / imgAspect; drawX = 0; drawY = (canvas.height - drawHeight) / 2; } colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight); if (!isMobileDevice()) { ctx.filter = 'grayscale(100%)'; ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'none'; } else { ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight); } }
+function sizeAndDrawInitial(slideElement, img) { const data = canvasData.get(slideElement); if (!data || !data.canvas || !data.ctx || !data.colorCanvas || !data.colorCtx) { const fallbackCanvas = slideElement.querySelector('.background-canvas'); if (fallbackCanvas) { const fallbackCtx = fallbackCanvas.getContext('2d'); fallbackCanvas.width = slideElement.offsetWidth || window.innerWidth; fallbackCanvas.height = slideElement.offsetHeight || window.innerHeight; if (fallbackCtx) { fallbackCtx.fillStyle = '#1a1a1a'; fallbackCtx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height); } } return; } const { canvas, ctx, colorCanvas, colorCtx } = data; const containerWidth = slideElement.offsetWidth || window.innerWidth; const containerHeight = slideElement.offsetHeight || window.innerHeight; if (canvas.width !== containerWidth || canvas.height !== containerHeight || canvas.width === 0) { canvas.width = containerWidth; canvas.height = containerHeight; } if (colorCanvas.width !== containerWidth || colorCanvas.height !== containerHeight || colorCanvas.width === 0) { colorCanvas.width = containerWidth; colorCanvas.height = containerHeight; } ctx.clearRect(0, 0, canvas.width, canvas.height); colorCtx.clearRect(0, 0, colorCanvas.width, colorCanvas.height); if (!img || !img.complete || typeof img.naturalWidth === "undefined" || img.naturalWidth === 0) { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; } const imgAspect = img.naturalWidth / img.naturalHeight; const containerAspect = canvas.width / canvas.height; let drawWidth, drawHeight, drawX, drawY; if (imgAspect > containerAspect) { drawHeight = canvas.height; drawWidth = drawHeight * imgAspect; drawX = (canvas.width - drawWidth) / 2; drawY = 0; } else { drawWidth = canvas.width; drawHeight = drawWidth / imgAspect; drawX = 0; drawY = (canvas.height - drawHeight) / 2; } colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'grayscale(100%)'; ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'none'; }
 function revealLoop() {
-    if (!isMobileDevice()) {
-        const posLerpAmount = BUBBLE_SLOW_FOLLOW_SPEED;
-        revealerX += (mouseX - revealerX) * posLerpAmount;
-        revealerY += (mouseY - revealerY) * posLerpAmount;
-        colorRevealer.style.transform = `translate(${revealerX}px, ${revealerY}px) translate(-50%, -50%)`;
-        
-        const sizeDifference = targetRevealRadius - currentRevealRadius;
-        if (Math.abs(sizeDifference) > 0.01) {
-            currentRevealRadius += sizeDifference * BUBBLE_SIZE_LERP_SPEED;
-            updateBubbleSize();
-        }
+    const posLerpAmount = BUBBLE_SLOW_FOLLOW_SPEED;
+    revealerX += (mouseX - revealerX) * posLerpAmount;
+    revealerY += (mouseY - revealerY) * posLerpAmount;
+    colorRevealer.style.transform = `translate(${revealerX}px, ${revealerY}px) translate(-50%, -50%)`;
+    
+    const sizeDifference = targetRevealRadius - currentRevealRadius;
+    if (Math.abs(sizeDifference) > 0.01) {
+        currentRevealRadius += sizeDifference * BUBBLE_SIZE_LERP_SPEED;
+        updateBubbleSize();
     }
-
-    if (isMobileDevice() || !currentCtx || !currentColorCanvas || !currentColorCtx) {
+    
+    if (!currentCtx || !currentColorCanvas || !currentColorCtx) {
         animationFrameId = requestAnimationFrame(revealLoop);
         return;
     }
@@ -188,51 +186,56 @@ function revealLoop() {
     currentCtx.restore();
     animationFrameId = requestAnimationFrame(revealLoop);
 }
-function showSlideVisuals(targetVisualIndex) { if (targetVisualIndex === currentVisualSlideIndex && slides[targetVisualIndex].classList.contains('current-slide') && canvasData.has(slides[targetVisualIndex])) { if (experienceHasStarted) startRevealAnimation(); return; } currentVisualSlideIndex = targetVisualIndex; slides.forEach((slide, i) => { if (i === currentVisualSlideIndex) { slide.classList.add('current-slide'); initSlideCanvas(slide, i, false); } else { slide.classList.remove('current-slide'); } }); if (experienceHasStarted) { if (!isMobileDevice()) { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; const activeSlideData = canvasData.get(slides[currentVisualSlideIndex]); if (activeSlideData && activeSlideData.ctx && activeSlideData.colorCanvas && activeSlideData.colorCtx) { currentCanvas = activeSlideData.canvas; currentCtx = activeSlideData.ctx; currentColorCanvas = activeSlideData.colorCanvas; currentColorCtx = activeSlideData.colorCtx; startRevealAnimation(); } } else { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; colorRevealer.style.opacity = '0'; } } }
+function showSlideVisuals(targetVisualIndex) { if (targetVisualIndex === currentVisualSlideIndex && slides[targetVisualIndex].classList.contains('current-slide') && canvasData.has(slides[targetVisualIndex])) { if (experienceHasStarted) startRevealAnimation(); return; } currentVisualSlideIndex = targetVisualIndex; slides.forEach((slide, i) => { if (i === currentVisualSlideIndex) { slide.classList.add('current-slide'); initSlideCanvas(slide, i, false); } else { slide.classList.remove('current-slide'); } }); if (experienceHasStarted) { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; const activeSlideData = canvasData.get(slides[currentVisualSlideIndex]); if (activeSlideData && activeSlideData.ctx && activeSlideData.colorCanvas && activeSlideData.colorCtx) { currentCanvas = activeSlideData.canvas; currentCtx = activeSlideData.ctx; currentColorCanvas = activeSlideData.colorCanvas; currentColorCtx = activeSlideData.colorCtx; startRevealAnimation(); } } }
 prevButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex - 1 + slides.length) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 nextButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex + 1) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 const sheets = { about: document.getElementById('about-sheet'), work: document.getElementById('work-sheet'), contact: document.getElementById('contact-sheet')}; let activeSheet = null; document.querySelectorAll('.sheet-close').forEach(btn => btn.addEventListener('click', closeAllSheets)); document.getElementById('about-btn').addEventListener('click', () => toggleSheet('about')); document.getElementById('work-btn').addEventListener('click', () => toggleSheet('work')); document.getElementById('contact-btn').addEventListener('click', () => toggleSheet('contact')); function toggleSheet(sheetName) { const sheetElement = sheets[sheetName]; const isVisible = sheetElement.classList.contains('visible'); closeAllSheets(); if (!isVisible) { sheetElement.classList.add('visible'); activeSheet = sheetElement; const focusable = sheetElement.querySelectorAll('h2, li[tabindex="0"], input, textarea, button, .sheet-close'); if (focusable.length) focusable[0].focus(); } } function closeAllSheets() { Object.values(sheets).forEach(s => s.classList.remove('visible')); activeSheet = null; } document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && activeSheet) closeAllSheets(); });
-
-// MODIFIED: This entire function is updated to handle the new mailto link behavior.
-contactForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const fd = new FormData(this);
-    const name = fd.get('name');
-    const email = fd.get('email');
-    const message = fd.get('message');
-
-    // Create a subject that includes the sender's name and email for context.
-    const subject = `New message from ${name} (${email})`;
-
-    // The body will now ONLY be the message the user typed.
-    const body = message;
-
-    // Construct the mailto link, making sure to encode components for URL safety.
-    const mailtoLink = `mailto:louis@louispapalouis.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-    // Open the user's email client in a NEW tab/window.
-    window.open(mailtoLink);
-    
-    alert('Thank you for reaching out!');
-    closeAllSheets();
-    this.reset();
-});
-
+contactForm.addEventListener('submit', function(e) { e.preventDefault(); const fd = new FormData(this); const name = fd.get('name'); const email = fd.get('email'); const message = fd.get('message'); const subject = `New message from ${name} (${email})`; const body = message; const mailtoLink = `mailto:louis@louispapalouis.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; window.open(mailtoLink); alert('Thank you for reaching out!'); closeAllSheets(); this.reset(); });
 function populateWorkSheet() { workTrackListElement.innerHTML = ''; allUniqueTracks.forEach((track, globalIdx) => { const li = document.createElement('li'); li.textContent = track.title; li.dataset.globalTrackIndex = globalIdx; li.setAttribute('role', 'button'); li.setAttribute('tabindex', '0'); li.addEventListener('click', () => handleWorkListItemClick(parseInt(li.dataset.globalTrackIndex))); li.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleWorkListItemClick(parseInt(li.dataset.globalTrackIndex)); } }); workTrackListElement.appendChild(li); }); }
 function handleWorkListItemClick(globalTrackIdxToPlay) { loadGlobalTrack(globalTrackIdxToPlay, true); }
 function updateWorkSheetHighlightByGlobalIndex(playingGlobalTrackIdx) { const allTrackItems = workTrackListElement.querySelectorAll('li'); allTrackItems.forEach(item => { item.classList.remove('current-track-item'); item.removeAttribute('aria-current'); if (parseInt(item.dataset.globalTrackIndex) === playingGlobalTrackIdx) { item.classList.add('current-track-item'); item.setAttribute('aria-current', 'true'); if (sheets.work.classList.contains('visible')) { item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } } }); }
 function handleSheetTouchStart(event) { if (!isMobileDevice() || !activeSheet || !activeSheet.classList.contains('visible')) { touchStartY = 0; return; } if (event.target.closest('.sheet-content') && event.target.closest('.sheet-content').scrollHeight > event.target.closest('.sheet-content').clientHeight) {} touchStartY = event.touches[0].clientY; } function handleSheetTouchMove(event) { if (!isMobileDevice() || !activeSheet || !activeSheet.classList.contains('visible') || touchStartY === 0) return; const deltaY = event.touches[0].clientY - touchStartY; const sheetContent = activeSheet.querySelector('.sheet-content'); if (sheetContent) { if (deltaY < 0 && sheetContent.scrollTop > 0) return; } } function handleSheetTouchEnd(event) { if (!isMobileDevice() || !activeSheet || !activeSheet.classList.contains('visible') || touchStartY === 0) return; if ((event.changedTouches[0].clientY - touchStartY) > SWIPE_CLOSE_THRESHOLD_Y) closeAllSheets(); touchStartY = 0; }
-function startRevealAnimation() { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; if (!isMobileDevice() && currentCtx && currentColorCanvas && currentColorCtx) { animationFrameId = requestAnimationFrame(revealLoop); } else if (isMobileDevice()) { colorRevealer.style.opacity = '0'; } }
-function updateMousePosition(event) { mouseX = event.pageX; mouseY = event.pageY; if (isMobileDevice()) { colorRevealer.style.opacity = '0'; return; } const target = event.target; const interactive = '.menu-button, .nav-button, .plyr, .sheet-content, .sheet-close, input, textarea, button, #work-track-list li, #unmute-overlay'; colorRevealer.style.opacity = target.closest(interactive) ? '0' : (window.getComputedStyle(colorRevealer).display !== 'none' && (animationFrameId || (currentCtx && currentColorCanvas && currentColorCtx))) ? '1' : '0'; }
-function updateTouchPosition(event) { if (event.touches.length > 0) { mouseX = event.touches[0].pageX; mouseY = event.touches[0].pageY; }}
+function startRevealAnimation() { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; if (currentCtx && currentColorCanvas && currentColorCtx) { animationFrameId = requestAnimationFrame(revealLoop); } }
+function updateRevealerPosition(event) {
+    let pageX, pageY, target;
+
+    if (event.touches && event.touches.length > 0) {
+        pageX = event.touches[0].pageX;
+        pageY = event.touches[0].pageY;
+        target = document.elementFromPoint(pageX, pageY); 
+    } else if (event.pageX !== undefined) {
+        pageX = event.pageX;
+        pageY = event.pageY;
+        target = event.target;
+    } else {
+        return;
+    }
+
+    mouseX = pageX;
+    mouseY = pageY;
+
+    if (!target) {
+        colorRevealer.style.opacity = '1';
+        return;
+    }
+
+    const interactive = '.menu-button, .nav-button, .plyr, .sheet-content, .sheet-close, input, textarea, button, #work-track-list li, #unmute-overlay';
+    const isOverInteractive = target.closest(interactive);
+    const isReadyForDisplay = experienceHasStarted && (animationFrameId || (currentCtx && currentColorCanvas && currentColorCtx));
+    
+    colorRevealer.style.opacity = isOverInteractive ? '0' : (isReadyForDisplay ? '1' : '0');
+}
 function handleResize() { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; slides.forEach((slide, index) => initSlideCanvas(slide, index, true)); const currentSlideEl = slides[currentVisualSlideIndex]; if (canvasData.has(currentSlideEl)) { const data = canvasData.get(currentSlideEl); if (data && (currentCanvas !== data.canvas || currentCtx !== data.ctx || currentColorCanvas !== data.colorCanvas || currentColorCtx !== data.colorCtx) ) { currentCanvas = data.canvas; currentCtx = data.ctx; currentColorCanvas = data.colorCanvas; currentColorCtx = data.colorCtx; } } if (experienceHasStarted) startRevealAnimation(); }
 function isMobileDevice() { return window.innerWidth <= 768; }
 function updateBubbleSize() { if (colorRevealer) { const diameter = currentRevealRadius * 2; colorRevealer.style.width = `${diameter}px`; colorRevealer.style.height = `${diameter}px`; } }
 function handleBubbleResize(event) { if (!experienceHasStarted || isMobileDevice()) return; event.preventDefault(); const delta = event.deltaY * BUBBLE_RESIZE_SENSITIVITY; let newTargetRadius = targetRevealRadius - delta; targetRevealRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newTargetRadius)); }
 
+// --- MODIFIED FUNCTION ---
 function resetColorReveal() {
-    if (isMobileDevice()) return;
+    // First, close any open information panel. This runs on both desktop and mobile.
+    closeAllSheets();
 
+    // Now, proceed with resetting the canvas visuals.
     const currentSlideElement = slides[currentVisualSlideIndex];
     const canvas = currentSlideElement.querySelector('.background-canvas');
     if (!canvas) return;
@@ -249,9 +252,9 @@ function resetColorReveal() {
     }, { once: true });
 }
 
-document.addEventListener('mousemove', updateMousePosition);
-document.addEventListener('touchmove', updateTouchPosition, { passive: true });
-document.addEventListener('touchstart', updateTouchPosition, { passive: true });
+document.addEventListener('mousemove', updateRevealerPosition);
+document.addEventListener('touchmove', updateRevealerPosition, { passive: true });
+document.addEventListener('touchstart', updateRevealerPosition, { passive: true });
 window.addEventListener('resize', handleResize);
 document.addEventListener('wheel', handleBubbleResize, { passive: false });
 if (resetBtn) {
