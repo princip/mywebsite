@@ -145,7 +145,67 @@ player.on('play', () => {
     }
 });
 
-function initSlideCanvas(slideElement, index, forceReload = false) { const canvas = slideElement.querySelector('.background-canvas'); if (!canvas) return false; if (forceReload && canvasData.has(slideElement)) { const oldData = canvasData.get(slideElement); if (oldData.ctx) oldData.ctx.clearRect(0, 0, oldData.canvas.width, oldData.canvas.height); if (oldData.colorCtx) oldData.colorCtx.clearRect(0, 0, oldData.colorCanvas.width, oldData.colorCanvas.height); canvasData.delete(slideElement); } if (canvasData.has(slideElement) && !forceReload) { const data = canvasData.get(slideElement); if (index === currentVisualSlideIndex) { currentCanvas = data.canvas; currentCtx = data.ctx; currentColorCanvas = data.colorCanvas; currentColorCtx = data.colorCtx; } return true; } const ctx = canvas.getContext('2d', { willReadFrequently: true }); const colorCanvas = document.createElement('canvas'); const colorCtx = colorCanvas.getContext('2d'); const img = new Image(); img.crossOrigin = "Anonymous"; const slideDataEntry = { canvas, ctx, colorCanvas, colorCtx, img: null }; canvasData.set(slideElement, slideDataEntry); img.onload = () => { slideDataEntry.img = img; sizeAndDrawInitial(slideElement, img); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = a.colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.onerror = (err) => { console.error(`Failed to load image for slide ${index}:`, getImageUrlForSlide(index), err); sizeAndDrawInitial(slideElement, null); if (index === currentVisualSlideIndex) { currentCanvas = canvas; currentCtx = ctx; currentColorCanvas = colorCanvas; currentColorCtx = colorCtx; if (experienceHasStarted) startRevealAnimation(); } }; img.src = getImageUrlForSlide(index); return false; }
+// --- MODIFIED FUNCTION ---
+function initSlideCanvas(slideElement, index, forceReload = false) { 
+    const canvas = slideElement.querySelector('.background-canvas'); 
+    if (!canvas) return false; 
+    
+    if (forceReload && canvasData.has(slideElement)) { 
+        const oldData = canvasData.get(slideElement); 
+        if (oldData.ctx) oldData.ctx.clearRect(0, 0, oldData.canvas.width, oldData.canvas.height); 
+        if (oldData.colorCtx) oldData.colorCtx.clearRect(0, 0, oldData.colorCanvas.width, oldData.colorCanvas.height); 
+        canvasData.delete(slideElement); 
+    } 
+    
+    if (canvasData.has(slideElement) && !forceReload) { 
+        const data = canvasData.get(slideElement); 
+        if (index === currentVisualSlideIndex) { 
+            currentCanvas = data.canvas; 
+            currentCtx = data.ctx; 
+            currentColorCanvas = data.colorCanvas; 
+            currentColorCtx = data.colorCtx; 
+        } 
+        return true; 
+    } 
+    
+    const ctx = canvas.getContext('2d', { willReadFrequently: true }); 
+    const colorCanvas = document.createElement('canvas'); 
+    const colorCtx = colorCanvas.getContext('2d'); 
+    const img = new Image(); 
+    img.crossOrigin = "Anonymous"; 
+    
+    const slideDataEntry = { canvas, ctx, colorCanvas, colorCtx, img: null }; 
+    canvasData.set(slideElement, slideDataEntry); 
+    
+    img.onload = () => { 
+        slideDataEntry.img = img; 
+        sizeAndDrawInitial(slideElement, img); 
+        if (index === currentVisualSlideIndex) { 
+            currentCanvas = canvas; 
+            currentCtx = ctx; 
+            currentColorCanvas = colorCanvas; // THE FIX IS HERE: Was 'a.colorCanvas'
+            currentColorCtx = colorCtx; 
+            if (experienceHasStarted) startRevealAnimation(); 
+        } 
+    }; 
+    
+    img.onerror = (err) => { 
+        console.error(`Failed to load image for slide ${index}:`, getImageUrlForSlide(index), err); 
+        sizeAndDrawInitial(slideElement, null); 
+        if (index === currentVisualSlideIndex) { 
+            currentCanvas = canvas; 
+            currentCtx = ctx; 
+            currentColorCanvas = colorCanvas; 
+            currentColorCtx = colorCtx; 
+            if (experienceHasStarted) startRevealAnimation(); 
+        } 
+    }; 
+    
+    img.src = getImageUrlForSlide(index); 
+    return false; 
+}
+// --- END MODIFIED FUNCTION ---
+
 function sizeAndDrawInitial(slideElement, img) { const data = canvasData.get(slideElement); if (!data || !data.canvas || !data.ctx || !data.colorCanvas || !data.colorCtx) { const fallbackCanvas = slideElement.querySelector('.background-canvas'); if (fallbackCanvas) { const fallbackCtx = fallbackCanvas.getContext('2d'); fallbackCanvas.width = slideElement.offsetWidth || window.innerWidth; fallbackCanvas.height = slideElement.offsetHeight || window.innerHeight; if (fallbackCtx) { fallbackCtx.fillStyle = '#1a1a1a'; fallbackCtx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height); } } return; } const { canvas, ctx, colorCanvas, colorCtx } = data; const containerWidth = slideElement.offsetWidth || window.innerWidth; const containerHeight = slideElement.offsetHeight || window.innerHeight; if (canvas.width !== containerWidth || canvas.height !== containerHeight || canvas.width === 0) { canvas.width = containerWidth; canvas.height = containerHeight; } if (colorCanvas.width !== containerWidth || colorCanvas.height !== containerHeight || colorCanvas.width === 0) { colorCanvas.width = containerWidth; colorCanvas.height = containerHeight; } ctx.clearRect(0, 0, canvas.width, canvas.height); colorCtx.clearRect(0, 0, colorCanvas.width, colorCanvas.height); if (!img || !img.complete || typeof img.naturalWidth === "undefined" || img.naturalWidth === 0) { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; } const imgAspect = img.naturalWidth / img.naturalHeight; const containerAspect = canvas.width / canvas.height; let drawWidth, drawHeight, drawX, drawY; if (imgAspect > containerAspect) { drawHeight = canvas.height; drawWidth = drawHeight * imgAspect; drawX = (canvas.width - drawWidth) / 2; drawY = 0; } else { drawWidth = canvas.width; drawHeight = drawWidth / imgAspect; drawX = 0; drawY = (canvas.height - drawHeight) / 2; } colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'grayscale(100%)'; ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'none'; }
 function revealLoop() {
     if (!isPinching) {
@@ -226,8 +286,6 @@ function isMobileDevice() { return window.innerWidth <= 768; }
 function updateBubbleSize() { if (colorRevealer) { const diameter = currentRevealRadius * 2; colorRevealer.style.width = `${diameter}px`; colorRevealer.style.height = `${diameter}px`; } }
 function handleBubbleResize(event) { if (!experienceHasStarted || isMobileDevice()) return; event.preventDefault(); const delta = event.deltaY * BUBBLE_RESIZE_SENSITIVITY; let newTargetRadius = targetRevealRadius - delta; targetRevealRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newTargetRadius)); }
 function resetColorReveal() { closeAllSheets(); const currentSlideElement = slides[currentVisualSlideIndex]; const canvas = currentSlideElement.querySelector('.background-canvas'); if (!canvas) return; canvas.style.transition = 'opacity 0.4s ease-in-out'; canvas.style.opacity = 0; canvas.addEventListener('transitionend', () => { initSlideCanvas(currentSlideElement, currentVisualSlideIndex, true); setTimeout(() => { canvas.style.opacity = 1; }, 50); }, { once: true }); }
-
-// --- NEW HELPER FUNCTION FOR FULLSCREEN ---
 function enterFullscreen(element) {
   if (element.requestFullscreen) {
     element.requestFullscreen();
@@ -241,8 +299,6 @@ function enterFullscreen(element) {
     console.log('Fullscreen API is not supported by this browser.');
   }
 }
-
-// --- TOUCH HANDLERS FOR PINCH-ZOOM ---
 function handleTouchStart(event) {
     if (event.touches.length === 2) {
         event.preventDefault(); // Prevent page zoom
@@ -303,12 +359,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('experience-started');
         startRevealAnimation();
         
-        // --- MODIFICATION HERE ---
-        // On mobile, request fullscreen when the user clicks "ENTER".
         if (isMobileDevice()) {
           enterFullscreen(document.documentElement);
         }
-        // --- END MODIFICATION ---
 
         initialPlayTimeout = setTimeout(() => {
             player.play().catch(e => console.error("Auto-play after delay failed:", e));
