@@ -1,8 +1,8 @@
-// --- script.js - Updated with "Outward from Center" Reset Logic ---
+// --- script.js - Updated with Global Reset Functionality ---
 
 // --- Configuration ---
 const INITIAL_REVEAL_RADIUS = 100;
-const MAX_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 1.35; // Max size is 35% bigger than default
+const MAX_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 1.20; // Max size is 20% bigger than default
 const MIN_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 0.05; // Min size is 5% of default
 const BUBBLE_RESIZE_SENSITIVITY = 0.3;
 const BUBBLE_SIZE_LERP_SPEED = 0.08;
@@ -439,59 +439,38 @@ function isMobileDevice() { return window.innerWidth <= 768; }
 function updateBubbleSize() { if (colorRevealer) { const diameter = currentRevealRadius * 2; colorRevealer.style.width = `${diameter}px`; colorRevealer.style.height = `${diameter}px`; } }
 function handleBubbleResize(event) { if (!experienceHasStarted || isMobileDevice()) return; event.preventDefault(); const delta = event.deltaY * BUBBLE_RESIZE_SENSITIVITY; let newTargetRadius = targetRevealRadius - delta; targetRevealRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newTargetRadius)); }
 
-// <<< START OF UPDATED RESET LOGIC >>>
-async function processResetQueue(queue) {
-  if (queue.length === 0) {
-    resetBtn.disabled = false;
-    return;
-  }
-
-  const [slideElement, data] = queue.shift();
-  const canvas = data.canvas;
-
-  if (canvas) {
-    await new Promise(resolve => {
-      canvas.style.transition = 'opacity 0.2s ease-in-out';
-      canvas.style.opacity = 0;
-
-      canvas.addEventListener('transitionend', () => {
-        const index = Array.from(slides).indexOf(slideElement);
-        if (index > -1) {
-          initSlideCanvas(slideElement, index, true);
-        }
-        
-        setTimeout(() => {
-          canvas.style.opacity = 1;
-          resolve();
-        }, 50);
-
-      }, { once: true });
-    });
-  }
-
-  processResetQueue(queue);
-}
-
+// <<< THIS IS THE UPDATED FUNCTION FOR GLOBAL RESET >>>
 function resetColorReveal() {
   closeAllSheets();
-  resetBtn.disabled = true;
 
-  const slidesToReset = Array.from(canvasData.keys());
-  const currentIndex = currentVisualSlideIndex;
+  // Iterate over every slide that has been initialized and stored in canvasData.
+  canvasData.forEach((data, slideElement) => {
+    const canvas = data.canvas;
+    if (!canvas) return; // Skip if canvas doesn't exist for some reason
 
-  slidesToReset.sort((a, b) => {
-    const indexA = Array.from(slides).indexOf(a);
-    const indexB = Array.from(slides).indexOf(b);
-    const distA = Math.abs(indexA - currentIndex);
-    const distB = Math.abs(indexB - currentIndex);
-    return distA - distB;
+    // Apply the fade-out transition to this specific canvas.
+    canvas.style.transition = 'opacity 0.4s ease-in-out';
+    canvas.style.opacity = 0;
+
+    // After THIS canvas has finished fading out...
+    canvas.addEventListener('transitionend', () => {
+      // We need the slide's index to re-initialize it correctly.
+      const index = Array.from(slides).indexOf(slideElement);
+      if (index === -1) return; // Should not happen, but a good safeguard.
+
+      // Re-initialize this specific canvas. 
+      // The `true` flag is crucial as it forces a complete redraw from the original image.
+      initSlideCanvas(slideElement, index, true);
+
+      // After it's redrawn, fade it back in.
+      // A small timeout gives the browser a moment to process the new canvas content before starting the fade.
+      setTimeout(() => {
+        canvas.style.opacity = 1;
+      }, 50);
+
+    }, { once: true }); // The { once: true } option is important to prevent this listener from firing multiple times.
   });
-
-  const resetQueue = slidesToReset.map(slideEl => [slideEl, canvasData.get(slideEl)]);
-  
-  processResetQueue(resetQueue);
 }
-// <<< END OF UPDATED RESET LOGIC >>>
 
 function enterFullscreen(element) {
   if (element.requestFullscreen) {
@@ -580,6 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
         experienceHasStarted = true;
         document.body.classList.add('experience-started');
         startRevealAnimation();
+
         
         if (isMobileDevice()) {
           enterFullscreen(document.documentElement);
