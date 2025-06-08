@@ -1,4 +1,4 @@
-// --- script.js - Final Version with Universal Reset Behavior ---
+// --- script.js - Updated with "Outward from Center" Reset Logic ---
 
 // --- Configuration ---
 const INITIAL_REVEAL_RADIUS = 100;
@@ -439,29 +439,59 @@ function isMobileDevice() { return window.innerWidth <= 768; }
 function updateBubbleSize() { if (colorRevealer) { const diameter = currentRevealRadius * 2; colorRevealer.style.width = `${diameter}px`; colorRevealer.style.height = `${diameter}px`; } }
 function handleBubbleResize(event) { if (!experienceHasStarted || isMobileDevice()) return; event.preventDefault(); const delta = event.deltaY * BUBBLE_RESIZE_SENSITIVITY; let newTargetRadius = targetRevealRadius - delta; targetRevealRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newTargetRadius)); }
 
+// <<< START OF UPDATED RESET LOGIC >>>
+async function processResetQueue(queue) {
+  if (queue.length === 0) {
+    resetBtn.disabled = false;
+    return;
+  }
+
+  const [slideElement, data] = queue.shift();
+  const canvas = data.canvas;
+
+  if (canvas) {
+    await new Promise(resolve => {
+      canvas.style.transition = 'opacity 0.2s ease-in-out';
+      canvas.style.opacity = 0;
+
+      canvas.addEventListener('transitionend', () => {
+        const index = Array.from(slides).indexOf(slideElement);
+        if (index > -1) {
+          initSlideCanvas(slideElement, index, true);
+        }
+        
+        setTimeout(() => {
+          canvas.style.opacity = 1;
+          resolve();
+        }, 50);
+
+      }, { once: true });
+    });
+  }
+
+  processResetQueue(queue);
+}
+
 function resetColorReveal() {
   closeAllSheets();
+  resetBtn.disabled = true;
 
-  canvasData.forEach((data, slideElement) => {
-    const canvas = data.canvas;
-    if (!canvas) return;
+  const slidesToReset = Array.from(canvasData.keys());
+  const currentIndex = currentVisualSlideIndex;
 
-    canvas.style.transition = 'opacity 0.4s ease-in-out';
-    canvas.style.opacity = 0;
-
-    canvas.addEventListener('transitionend', () => {
-      const index = Array.from(slides).indexOf(slideElement);
-      if (index === -1) return;
-
-      initSlideCanvas(slideElement, index, true);
-
-      setTimeout(() => {
-        canvas.style.opacity = 1;
-      }, 50);
-
-    }, { once: true });
+  slidesToReset.sort((a, b) => {
+    const indexA = Array.from(slides).indexOf(a);
+    const indexB = Array.from(slides).indexOf(b);
+    const distA = Math.abs(indexA - currentIndex);
+    const distB = Math.abs(indexB - currentIndex);
+    return distA - distB;
   });
+
+  const resetQueue = slidesToReset.map(slideEl => [slideEl, canvasData.get(slideEl)]);
+  
+  processResetQueue(resetQueue);
 }
+// <<< END OF UPDATED RESET LOGIC >>>
 
 function enterFullscreen(element) {
   if (element.requestFullscreen) {
