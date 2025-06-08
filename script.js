@@ -1,8 +1,9 @@
-// --- script.js - Updated with High-DPI fixes for both canvas and reveal bubble ---
+// --- script.js - Updated with larger max bubble size ---
 
 // --- Configuration ---
 const INITIAL_REVEAL_RADIUS = 100;
-const MAX_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 1.20; // Max size is 20% bigger than default
+// <<< THIS LINE HAS BEEN CHANGED FROM 1.20 to 1.35 >>>
+const MAX_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 1.35; // Max size is 35% bigger than default
 const MIN_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 0.05; // Min size is 5% of default
 const BUBBLE_RESIZE_SENSITIVITY = 0.3;
 const BUBBLE_SIZE_LERP_SPEED = 0.08;
@@ -303,9 +304,7 @@ function sizeAndDrawInitial(slideElement, img) {
     ctx.filter = 'none';
 }
 
-// <<< THIS IS THE UPDATED FUNCTION FOR THE REVEAL BUBBLE COORDINATES >>>
 function revealLoop() {
-    // Keep the logical position for the CSS element and lerping
     if (!isPinching) {
         const posLerpAmount = BUBBLE_SLOW_FOLLOW_SPEED;
         revealerX += (mouseX - revealerX) * posLerpAmount;
@@ -313,7 +312,6 @@ function revealLoop() {
     }
     colorRevealer.style.transform = `translate(${revealerX}px, ${revealerY}px) translate(-50%, -50%)`;
     
-    // Keep the logical radius for sizing logic
     if (!isPinching) {
         const sizeDifference = targetRevealRadius - currentRevealRadius;
         if (Math.abs(sizeDifference) > 0.01) {
@@ -327,17 +325,11 @@ function revealLoop() {
         return;
     }
 
-    // --- START OF FIX ---
-    
-    // 1. Get the device pixel ratio
     const dpr = window.devicePixelRatio || 1;
-
-    // 2. Convert the logical bubble position and radius to physical canvas coordinates
     const physicalRevealerX = revealerX * dpr;
     const physicalRevealerY = revealerY * dpr;
     const physicalRadius = currentRevealRadius * dpr;
 
-    // 3. Use the PHYSICAL values for all canvas drawing operations
     currentCtx.save();
     currentCtx.beginPath();
     currentCtx.arc(physicalRevealerX, physicalRevealerY, physicalRadius, 0, Math.PI * 2);
@@ -347,8 +339,6 @@ function revealLoop() {
     const sy = physicalRevealerY - physicalRadius;
     const sWidth = physicalRadius * 2;
     const sHeight = physicalRadius * 2;
-
-    // --- END OF FIX ---
 
     const clampedSx = Math.max(0, Math.min(sx, currentColorCanvas.width - 1));
     const clampedSy = Math.max(0, Math.min(sy, currentColorCanvas.height - 1));
@@ -449,7 +439,31 @@ function handleResize() { if (animationFrameId) cancelAnimationFrame(animationFr
 function isMobileDevice() { return window.innerWidth <= 768; }
 function updateBubbleSize() { if (colorRevealer) { const diameter = currentRevealRadius * 2; colorRevealer.style.width = `${diameter}px`; colorRevealer.style.height = `${diameter}px`; } }
 function handleBubbleResize(event) { if (!experienceHasStarted || isMobileDevice()) return; event.preventDefault(); const delta = event.deltaY * BUBBLE_RESIZE_SENSITIVITY; let newTargetRadius = targetRevealRadius - delta; targetRevealRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newTargetRadius)); }
-function resetColorReveal() { closeAllSheets(); const currentSlideElement = slides[currentVisualSlideIndex]; const canvas = currentSlideElement.querySelector('.background-canvas'); if (!canvas) return; canvas.style.transition = 'opacity 0.4s ease-in-out'; canvas.style.opacity = 0; canvas.addEventListener('transitionend', () => { initSlideCanvas(currentSlideElement, currentVisualSlideIndex, true); setTimeout(() => { canvas.style.opacity = 1; }, 50); }, { once: true }); }
+
+function resetColorReveal() {
+  closeAllSheets();
+
+  canvasData.forEach((data, slideElement) => {
+    const canvas = data.canvas;
+    if (!canvas) return;
+
+    canvas.style.transition = 'opacity 0.4s ease-in-out';
+    canvas.style.opacity = 0;
+
+    canvas.addEventListener('transitionend', () => {
+      const index = Array.from(slides).indexOf(slideElement);
+      if (index === -1) return;
+
+      initSlideCanvas(slideElement, index, true);
+
+      setTimeout(() => {
+        canvas.style.opacity = 1;
+      }, 50);
+
+    }, { once: true });
+  });
+}
+
 function enterFullscreen(element) {
   if (element.requestFullscreen) {
     element.requestFullscreen();
