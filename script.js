@@ -1,4 +1,4 @@
-// script.js
+// --- Updated script.js with Cloudflare Worker for Contact Form ---
 
 // --- Configuration ---
 const INITIAL_REVEAL_RADIUS = 100;
@@ -254,7 +254,67 @@ function showSlideVisuals(targetVisualIndex) { if (targetVisualIndex === current
 prevButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex - 1 + slides.length) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 nextButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex + 1) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 const sheets = { about: document.getElementById('about-sheet'), work: document.getElementById('work-sheet'), contact: document.getElementById('contact-sheet')}; let activeSheet = null; document.querySelectorAll('.sheet-close').forEach(btn => btn.addEventListener('click', closeAllSheets)); document.getElementById('about-btn').addEventListener('click', () => toggleSheet('about')); document.getElementById('work-btn').addEventListener('click', () => toggleSheet('work')); document.getElementById('contact-btn').addEventListener('click', () => toggleSheet('contact')); function toggleSheet(sheetName) { const sheetElement = sheets[sheetName]; const isVisible = sheetElement.classList.contains('visible'); closeAllSheets(); if (!isVisible) { sheetElement.classList.add('visible'); activeSheet = sheetElement; const focusable = sheetElement.querySelectorAll('h2, li[tabindex="0"], input, textarea, button, .sheet-close'); if (focusable.length) focusable[0].focus(); } } function closeAllSheets() { Object.values(sheets).forEach(s => s.classList.remove('visible')); activeSheet = null; } document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && activeSheet) closeAllSheets(); });
-contactForm.addEventListener('submit', function(e) { e.preventDefault(); const fd = new FormData(this); const name = fd.get('name'); const email = fd.get('email'); const message = fd.get('message'); const subject = `New message from ${name} (${email})`; const body = message; const mailtoLink = `mailto:louis@louispapalouis.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; window.open(mailtoLink); alert('Thank you for reaching out!'); closeAllSheets(); this.reset(); });
+
+// --- <<< START: UPDATED CONTACT FORM LOGIC >>> ---
+contactForm.addEventListener('submit', function(e) {
+  e.preventDefault(); // Prevent the default form submission
+
+  const submitButton = this.querySelector('button[type="submit"]');
+  const originalButtonText = submitButton.textContent;
+  
+  submitButton.disabled = true;
+  submitButton.textContent = 'Sending...';
+
+  const fd = new FormData(this);
+  const formDataObj = {
+    name: fd.get('name'),
+    email: fd.get('email'),
+    message: fd.get('message')
+  };
+
+  // !!! IMPORTANT: REPLACE WITH YOUR ACTUAL WORKER URL !!!
+  // Based on your previous screenshots, it should look something like this.
+  // Double-check this URL in your Cloudflare dashboard.
+  const workerUrl = 'https://contact-form-handler.louiloui.workers.dev';
+
+  fetch(workerUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(formDataObj),
+  })
+  .then(response => {
+    if (!response.ok) {
+      // Try to get a specific error message from the worker, otherwise use the status
+      return response.json().then(err => { throw new Error(err.error || `Server error: ${response.status}`) });
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      alert('Thank you for your message! I will get back to you shortly.');
+      this.reset(); // Clear the form
+      closeAllSheets(); // Close the contact panel
+    } else {
+      // This handles cases where the worker returns a specific error message
+      console.error('Worker Error:', data.error);
+      alert(`Sorry, there was a problem: ${data.error}`);
+    }
+  })
+  .catch(error => {
+    // This handles network errors or if the fetch completely fails
+    console.error('Fetch Error:', error);
+    alert('An unexpected error occurred. Please check your connection or try again later.');
+  })
+  .finally(() => {
+    // This part always runs, whether it succeeded or failed
+    submitButton.disabled = false;
+    submitButton.textContent = originalButtonText;
+  });
+});
+// --- <<< END: UPDATED CONTACT FORM LOGIC >>> ---
+
 function populateWorkSheet() { workTrackListElement.innerHTML = ''; allUniqueTracks.forEach((track, globalIdx) => { const li = document.createElement('li'); li.textContent = track.title; li.dataset.globalTrackIndex = globalIdx; li.setAttribute('role', 'button'); li.setAttribute('tabindex', '0'); li.addEventListener('click', () => handleWorkListItemClick(parseInt(li.dataset.globalTrackIndex))); li.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleWorkListItemClick(parseInt(li.dataset.globalTrackIndex)); } }); workTrackListElement.appendChild(li); }); }
 function handleWorkListItemClick(globalTrackIdxToPlay) { loadGlobalTrack(globalTrackIdxToPlay, true); }
 function updateWorkSheetHighlightByGlobalIndex(playingGlobalTrackIdx) { const allTrackItems = workTrackListElement.querySelectorAll('li'); allTrackItems.forEach(item => { item.classList.remove('current-track-item'); item.removeAttribute('aria-current'); if (parseInt(item.dataset.globalTrackIndex) === playingGlobalTrackIdx) { item.classList.add('current-track-item'); item.setAttribute('aria-current', 'true'); if (sheets.work.classList.contains('visible')) { item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } } }); }
