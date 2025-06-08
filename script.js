@@ -1,4 +1,4 @@
-// --- Updated script.js with Cloudflare Worker for Contact Form ---
+// --- Updated script.js with new Desktop WebP images ---
 
 // --- Configuration ---
 const INITIAL_REVEAL_RADIUS = 100;
@@ -14,7 +14,6 @@ const gallery = document.querySelector('.gallery');
 const prevButton = document.getElementById('prev');
 const nextButton = document.getElementById('next');
 const colorRevealer = document.getElementById('color-revealer');
-const slides = document.querySelectorAll('.slide');
 const playerElement = document.getElementById('player');
 const contactForm = document.getElementById('contact-form');
 const workTrackListElement = document.getElementById('work-track-list');
@@ -23,6 +22,7 @@ const unmuteOverlay = document.getElementById('unmute-overlay');
 const resetBtn = document.getElementById('reset-btn');
 
 // --- State Variables ---
+let slides = null; // Will be populated dynamically
 let currentVisualSlideIndex = 0;
 let currentGlobalTrackIndex = 0;
 let experienceHasStarted = false;
@@ -50,14 +50,45 @@ let pinchStartRadius = 0;
 
 // --- Background Images ---
 const backgroundImages = {
+  // <<< UPDATED WITH YOUR NEW DESKTOP IMAGE LINKS >>>
   desktop: [ 
-    'https://i.postimg.cc/j5dZWt7b/68550006.jpg', 
-    'https://i.postimg.cc/90Dbpbbg/img0024.jpg', 
-    'https://i.postimg.cc/wTwHN6Mj/Photo07-7.jpg', 
-    'https://i.postimg.cc/RCYXFrCk/Photo40-40-01.jpg', 
-    'https://i.postimg.cc/gkF39hcB/Greece1.jpg'
+    'https://i.postimg.cc/MGr5s3CL/1.webp',
+    'https://i.postimg.cc/FKKGVXBc/2.webp',
+    'https://i.postimg.cc/W1T5tkm5/3.webp',
+    'https://i.postimg.cc/d1bBFktm/4.webp',
+    'https://i.postimg.cc/TwL9BqG3/5.webp',
+    'https://i.postimg.cc/QCcqd8FL/6.webp'
   ],
-  mobile: [ 'https://i.postimg.cc/BvQWzDj0/ali-abdul-rahman-l0-PVh-G5-Af5-E-unsplash.jpg', 'https://i.postimg.cc/J4ZWHMf9/anurag-challa-w-A-hp-HEr-U-I-unsplash.jpg', 'https://i.postimg.cc/0NWg1QSJ/bing-hui-yau-Y2-Vb-Sb-X49-R0-unsplash.jpg', 'https://i.postimg.cc/VkFQ44Lg/h-co-XVVQNQphn-Eg-unsplash.jpg', 'https://i.postimg.cc/zGNYn453/jei-lee-x-Z7k6-Jn-js-unsplash.jpg', 'https://i.postimg.cc/T2Z6Pp4V/jonas-kaiser-X-d-Ya9-Y5l08-unsplash.jpg', 'https://i.postimg.cc/506h4V5K/rafael-garcin-k-Wx9-LLNSQRQ-unsplash.jpg', 'https://i.postimg.cc/4dqrnSBf/vivek-doshi-AZNIy-Tiiy-HU-unsplash.jpg', 'https://i.postimg.cc/BvQWzDj0/ali-abdul-rahman-l0-PVh-G5-Af5-E-unsplash.jpg', 'https://i.postimg.cc/J4ZWHMf9/anurag-challa-w-A-hp-HEr-U-I-unsplash.jpg', 'https://i.postimg.cc/0NWg1QSJ/bing-hui-yau-Y2-Vb-Sb-X49-R0-unsplash.jpg' ]
+  mobile: [ 
+    'https://i.postimg.cc/J4RVL9kH/1.webp',
+    'https://i.postimg.cc/9Qf64Z1W/2.webp',
+    'https://i.postimg.cc/sDKFDwY6/3.webp',
+    'https://i.postimg.cc/rp07jTv3/4.webp',
+    'https://i.postimg.cc/g2Bf3jB3/5.webp',
+    'https://i.postimg.cc/Bvrkwy36/6.webp',
+    'https://i.postimg.cc/PJhcdwPn/7.webp',
+    'https://i.postimg.cc/FFg8DDBr/8.webp',
+    'https://i.postimg.cc/nzqg8kV1/9.webp',
+    'https://i.postimg.cc/Wznyz1kF/10.webp',
+    'https://i.postimg.cc/5NsGMjJD/11.webp',
+    'https://i.postimg.cc/HsYKKXqQ/12.webp',
+    'https://i.postimg.cc/cL6z1Z4C/13.webp',
+    'https://i.postimg.cc/cLjbrjrm/14.webp',
+    'https://i.postimg.cc/rprYWJ4L/15.webp',
+    'https://i.postimg.cc/1t17Kq0V/16.webp',
+    'https://i.postimg.cc/8ctyDX2L/17.webp',
+    'https://i.postimg.cc/G2P7gmz7/18.webp',
+    'https://i.postimg.cc/SRyZBbvy/19.webp',
+    'https://i.postimg.cc/yYpfb5XH/20.webp',
+    'https://i.postimg.cc/BZg7xtjt/21.webp',
+    'https://i.postimg.cc/ZK57jZNH/22.webp',
+    'https://i.postimg.cc/NjWdgHzC/23.webp',
+    'https://i.postimg.cc/NjyNq4pr/24.webp',
+    'https://i.postimg.cc/DzLBmzVv/25.webp',
+    'https://i.postimg.cc/Y0q3Xfv0/26.webp',
+    'https://i.postimg.cc/9M219jVG/27.webp',
+    'https://i.postimg.cc/4d1PbFNj/28.webp'
+  ]
 };
 
 // --- Audio Player Setup ---
@@ -75,8 +106,6 @@ const allUniqueTracks = [
   { url: "https://princip.github.io/mp3/Website_Mikro_Enthymio.mp3", title: "Mikro Enthymio" },
   { url: "https://princip.github.io/mp3/Website_Solar_Eclipse_no8.mp3", title: "Solar Eclipse no.8" }
 ];
-
-const slideToTrackMapping = [0, 1, 2, 3, 4];
 
 function fadeVolumeIn(targetVolume, duration) {
     if (volumeFadeInterval) clearInterval(volumeFadeInterval);
@@ -145,7 +174,6 @@ player.on('play', () => {
     }
 });
 
-// --- CORRECTED FUNCTION ---
 function initSlideCanvas(slideElement, index, forceReload = false) { 
     const canvas = slideElement.querySelector('.background-canvas'); 
     if (!canvas) return false; 
@@ -183,7 +211,6 @@ function initSlideCanvas(slideElement, index, forceReload = false) {
         if (index === currentVisualSlideIndex) { 
             currentCanvas = canvas; 
             currentCtx = ctx; 
-            // THE FIX IS HERE: Was 'a.colorCanvas', corrected to 'colorCanvas'
             currentColorCanvas = colorCanvas; 
             currentColorCtx = colorCtx; 
             if (experienceHasStarted) startRevealAnimation(); 
@@ -205,7 +232,6 @@ function initSlideCanvas(slideElement, index, forceReload = false) {
     img.src = getImageUrlForSlide(index); 
     return false; 
 }
-// --- END CORRECTED FUNCTION ---
 
 function sizeAndDrawInitial(slideElement, img) { const data = canvasData.get(slideElement); if (!data || !data.canvas || !data.ctx || !data.colorCanvas || !data.colorCtx) { const fallbackCanvas = slideElement.querySelector('.background-canvas'); if (fallbackCanvas) { const fallbackCtx = fallbackCanvas.getContext('2d'); fallbackCanvas.width = slideElement.offsetWidth || window.innerWidth; fallbackCanvas.height = slideElement.offsetHeight || window.innerHeight; if (fallbackCtx) { fallbackCtx.fillStyle = '#1a1a1a'; fallbackCtx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height); } } return; } const { canvas, ctx, colorCanvas, colorCtx } = data; const containerWidth = slideElement.offsetWidth || window.innerWidth; const containerHeight = slideElement.offsetHeight || window.innerHeight; if (canvas.width !== containerWidth || canvas.height !== containerHeight || canvas.width === 0) { canvas.width = containerWidth; canvas.height = containerHeight; } if (colorCanvas.width !== containerWidth || colorCanvas.height !== containerHeight || colorCanvas.width === 0) { colorCanvas.width = containerWidth; colorCanvas.height = containerHeight; } ctx.clearRect(0, 0, canvas.width, canvas.height); colorCtx.clearRect(0, 0, colorCanvas.width, colorCanvas.height); if (!img || !img.complete || typeof img.naturalWidth === "undefined" || img.naturalWidth === 0) { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; } const imgAspect = img.naturalWidth / img.naturalHeight; const containerAspect = canvas.width / canvas.height; let drawWidth, drawHeight, drawX, drawY; if (imgAspect > containerAspect) { drawHeight = canvas.height; drawWidth = drawHeight * imgAspect; drawX = (canvas.width - drawWidth) / 2; drawY = 0; } else { drawWidth = canvas.width; drawHeight = drawWidth / imgAspect; drawX = 0; drawY = (canvas.height - drawHeight) / 2; } colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'grayscale(100%)'; ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'none'; }
 function revealLoop() {
@@ -255,38 +281,26 @@ prevButton.addEventListener('click', () => { const newVisualSlideIndex = (curren
 nextButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex + 1) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 const sheets = { about: document.getElementById('about-sheet'), work: document.getElementById('work-sheet'), contact: document.getElementById('contact-sheet')}; let activeSheet = null; document.querySelectorAll('.sheet-close').forEach(btn => btn.addEventListener('click', closeAllSheets)); document.getElementById('about-btn').addEventListener('click', () => toggleSheet('about')); document.getElementById('work-btn').addEventListener('click', () => toggleSheet('work')); document.getElementById('contact-btn').addEventListener('click', () => toggleSheet('contact')); function toggleSheet(sheetName) { const sheetElement = sheets[sheetName]; const isVisible = sheetElement.classList.contains('visible'); closeAllSheets(); if (!isVisible) { sheetElement.classList.add('visible'); activeSheet = sheetElement; const focusable = sheetElement.querySelectorAll('h2, li[tabindex="0"], input, textarea, button, .sheet-close'); if (focusable.length) focusable[0].focus(); } } function closeAllSheets() { Object.values(sheets).forEach(s => s.classList.remove('visible')); activeSheet = null; } document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && activeSheet) closeAllSheets(); });
 
-// --- <<< START: UPDATED CONTACT FORM LOGIC >>> ---
 contactForm.addEventListener('submit', function(e) {
-  e.preventDefault(); // Prevent the default form submission
-
+  e.preventDefault(); 
   const submitButton = this.querySelector('button[type="submit"]');
   const originalButtonText = submitButton.textContent;
-  
   submitButton.disabled = true;
   submitButton.textContent = 'Sending...';
-
   const fd = new FormData(this);
   const formDataObj = {
     name: fd.get('name'),
     email: fd.get('email'),
     message: fd.get('message')
   };
-
-  // !!! IMPORTANT: REPLACE WITH YOUR ACTUAL WORKER URL !!!
-  // Based on your previous screenshots, it should look something like this.
-  // Double-check this URL in your Cloudflare dashboard.
   const workerUrl = 'https://contact-form-handler.louiloui.workers.dev';
-
   fetch(workerUrl, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json', },
     body: JSON.stringify(formDataObj),
   })
   .then(response => {
     if (!response.ok) {
-      // Try to get a specific error message from the worker, otherwise use the status
       return response.json().then(err => { throw new Error(err.error || `Server error: ${response.status}`) });
     }
     return response.json();
@@ -294,26 +308,22 @@ contactForm.addEventListener('submit', function(e) {
   .then(data => {
     if (data.success) {
       alert('Thank you for your message! I will get back to you shortly.');
-      this.reset(); // Clear the form
-      closeAllSheets(); // Close the contact panel
+      this.reset();
+      closeAllSheets();
     } else {
-      // This handles cases where the worker returns a specific error message
       console.error('Worker Error:', data.error);
       alert(`Sorry, there was a problem: ${data.error}`);
     }
   })
   .catch(error => {
-    // This handles network errors or if the fetch completely fails
     console.error('Fetch Error:', error);
     alert('An unexpected error occurred. Please check your connection or try again later.');
   })
   .finally(() => {
-    // This part always runs, whether it succeeded or failed
     submitButton.disabled = false;
     submitButton.textContent = originalButtonText;
   });
 });
-// --- <<< END: UPDATED CONTACT FORM LOGIC >>> ---
 
 function populateWorkSheet() { workTrackListElement.innerHTML = ''; allUniqueTracks.forEach((track, globalIdx) => { const li = document.createElement('li'); li.textContent = track.title; li.dataset.globalTrackIndex = globalIdx; li.setAttribute('role', 'button'); li.setAttribute('tabindex', '0'); li.addEventListener('click', () => handleWorkListItemClick(parseInt(li.dataset.globalTrackIndex))); li.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleWorkListItemClick(parseInt(li.dataset.globalTrackIndex)); } }); workTrackListElement.appendChild(li); }); }
 function handleWorkListItemClick(globalTrackIdxToPlay) { loadGlobalTrack(globalTrackIdxToPlay, true); }
@@ -408,6 +418,21 @@ if (resetBtn) {
 
 // --- Initial Load ---
 document.addEventListener('DOMContentLoaded', () => {
+  const imagesToUse = isMobileDevice() ? backgroundImages.mobile : backgroundImages.desktop;
+  gallery.innerHTML = ''; 
+  for (let i = 0; i < imagesToUse.length; i++) {
+    const slide = document.createElement('div');
+    slide.className = 'slide';
+    slide.id = `slide${i + 1}`;
+    
+    const canvas = document.createElement('canvas');
+    canvas.className = 'background-canvas';
+    
+    slide.appendChild(canvas);
+    gallery.appendChild(slide);
+  }
+  slides = document.querySelectorAll('.slide');
+    
   updateBubbleSize();
   populateWorkSheet();
   loadGlobalTrack(currentGlobalTrackIndex, false); 
