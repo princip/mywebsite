@@ -1,4 +1,4 @@
-// --- script.js - Updated with Global Reset Functionality ---
+// --- script.js - Updated with High-DPI fixes for both canvas and reveal bubble ---
 
 // --- Configuration ---
 const INITIAL_REVEAL_RADIUS = 100;
@@ -303,7 +303,9 @@ function sizeAndDrawInitial(slideElement, img) {
     ctx.filter = 'none';
 }
 
+// <<< THIS IS THE UPDATED FUNCTION FOR THE REVEAL BUBBLE COORDINATES >>>
 function revealLoop() {
+    // Keep the logical position for the CSS element and lerping
     if (!isPinching) {
         const posLerpAmount = BUBBLE_SLOW_FOLLOW_SPEED;
         revealerX += (mouseX - revealerX) * posLerpAmount;
@@ -311,6 +313,7 @@ function revealLoop() {
     }
     colorRevealer.style.transform = `translate(${revealerX}px, ${revealerY}px) translate(-50%, -50%)`;
     
+    // Keep the logical radius for sizing logic
     if (!isPinching) {
         const sizeDifference = targetRevealRadius - currentRevealRadius;
         if (Math.abs(sizeDifference) > 0.01) {
@@ -324,11 +327,17 @@ function revealLoop() {
         return;
     }
 
+    // --- START OF FIX ---
+    
+    // 1. Get the device pixel ratio
     const dpr = window.devicePixelRatio || 1;
+
+    // 2. Convert the logical bubble position and radius to physical canvas coordinates
     const physicalRevealerX = revealerX * dpr;
     const physicalRevealerY = revealerY * dpr;
     const physicalRadius = currentRevealRadius * dpr;
 
+    // 3. Use the PHYSICAL values for all canvas drawing operations
     currentCtx.save();
     currentCtx.beginPath();
     currentCtx.arc(physicalRevealerX, physicalRevealerY, physicalRadius, 0, Math.PI * 2);
@@ -338,6 +347,8 @@ function revealLoop() {
     const sy = physicalRevealerY - physicalRadius;
     const sWidth = physicalRadius * 2;
     const sHeight = physicalRadius * 2;
+
+    // --- END OF FIX ---
 
     const clampedSx = Math.max(0, Math.min(sx, currentColorCanvas.width - 1));
     const clampedSy = Math.max(0, Math.min(sy, currentColorCanvas.height - 1));
@@ -438,40 +449,7 @@ function handleResize() { if (animationFrameId) cancelAnimationFrame(animationFr
 function isMobileDevice() { return window.innerWidth <= 768; }
 function updateBubbleSize() { if (colorRevealer) { const diameter = currentRevealRadius * 2; colorRevealer.style.width = `${diameter}px`; colorRevealer.style.height = `${diameter}px`; } }
 function handleBubbleResize(event) { if (!experienceHasStarted || isMobileDevice()) return; event.preventDefault(); const delta = event.deltaY * BUBBLE_RESIZE_SENSITIVITY; let newTargetRadius = targetRevealRadius - delta; targetRevealRadius = Math.max(MIN_REVEAL_RADIUS, Math.min(MAX_REVEAL_RADIUS, newTargetRadius)); }
-
-// <<< THIS IS THE UPDATED FUNCTION FOR GLOBAL RESET >>>
-function resetColorReveal() {
-  closeAllSheets();
-
-  // Iterate over every slide that has been initialized and stored in canvasData.
-  canvasData.forEach((data, slideElement) => {
-    const canvas = data.canvas;
-    if (!canvas) return; // Skip if canvas doesn't exist for some reason
-
-    // Apply the fade-out transition to this specific canvas.
-    canvas.style.transition = 'opacity 0.4s ease-in-out';
-    canvas.style.opacity = 0;
-
-    // After THIS canvas has finished fading out...
-    canvas.addEventListener('transitionend', () => {
-      // We need the slide's index to re-initialize it correctly.
-      const index = Array.from(slides).indexOf(slideElement);
-      if (index === -1) return; // Should not happen, but a good safeguard.
-
-      // Re-initialize this specific canvas. 
-      // The `true` flag is crucial as it forces a complete redraw from the original image.
-      initSlideCanvas(slideElement, index, true);
-
-      // After it's redrawn, fade it back in.
-      // A small timeout gives the browser a moment to process the new canvas content before starting the fade.
-      setTimeout(() => {
-        canvas.style.opacity = 1;
-      }, 50);
-
-    }, { once: true }); // The { once: true } option is important to prevent this listener from firing multiple times.
-  });
-}
-
+function resetColorReveal() { closeAllSheets(); const currentSlideElement = slides[currentVisualSlideIndex]; const canvas = currentSlideElement.querySelector('.background-canvas'); if (!canvas) return; canvas.style.transition = 'opacity 0.4s ease-in-out'; canvas.style.opacity = 0; canvas.addEventListener('transitionend', () => { initSlideCanvas(currentSlideElement, currentVisualSlideIndex, true); setTimeout(() => { canvas.style.opacity = 1; }, 50); }, { once: true }); }
 function enterFullscreen(element) {
   if (element.requestFullscreen) {
     element.requestFullscreen();
@@ -559,7 +537,6 @@ document.addEventListener('DOMContentLoaded', () => {
         experienceHasStarted = true;
         document.body.classList.add('experience-started');
         startRevealAnimation();
-
         
         if (isMobileDevice()) {
           enterFullscreen(document.documentElement);
