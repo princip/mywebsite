@@ -52,7 +52,7 @@ let pinchStartRadius = 0;
 const backgroundImages = {
   // <<< UPDATED WITH YOUR NEW DESKTOP IMAGE LINKS >>>
   desktop: [ 
-    'https://i.postimg.cc/MGr5s3CL/1.webp',
+    'https://i.postimg.cc/mDDGFrMH/68550006.webp',
     'https://i.postimg.cc/FKKGVXBc/2.webp',
     'https://i.postimg.cc/W1T5tkm5/3.webp',
     'https://i.postimg.cc/d1bBFktm/4.webp',
