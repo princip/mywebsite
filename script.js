@@ -1,8 +1,7 @@
-// --- script.js - Updated with larger max bubble size ---
+// --- script.js - Final Version with Universal Reset Behavior ---
 
 // --- Configuration ---
 const INITIAL_REVEAL_RADIUS = 100;
-// <<< THIS LINE HAS BEEN CHANGED FROM 1.20 to 1.35 >>>
 const MAX_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 1.35; // Max size is 35% bigger than default
 const MIN_REVEAL_RADIUS = INITIAL_REVEAL_RADIUS * 0.05; // Min size is 5% of default
 const BUBBLE_RESIZE_SENSITIVITY = 0.3;
