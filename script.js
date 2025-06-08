@@ -1,4 +1,4 @@
-// --- Updated script.js with new Desktop WebP images ---
+// --- script.js - Updated with High-DPI fixes for both canvas and reveal bubble ---
 
 // --- Configuration ---
 const INITIAL_REVEAL_RADIUS = 100;
@@ -50,7 +50,6 @@ let pinchStartRadius = 0;
 
 // --- Background Images ---
 const backgroundImages = {
-  // <<< UPDATED WITH YOUR NEW DESKTOP IMAGE LINKS >>>
   desktop: [ 
     'https://i.postimg.cc/MGr5s3CL/1.webp',
     'https://i.postimg.cc/FKKGVXBc/2.webp',
@@ -233,14 +232,88 @@ function initSlideCanvas(slideElement, index, forceReload = false) {
     return false; 
 }
 
-function sizeAndDrawInitial(slideElement, img) { const data = canvasData.get(slideElement); if (!data || !data.canvas || !data.ctx || !data.colorCanvas || !data.colorCtx) { const fallbackCanvas = slideElement.querySelector('.background-canvas'); if (fallbackCanvas) { const fallbackCtx = fallbackCanvas.getContext('2d'); fallbackCanvas.width = slideElement.offsetWidth || window.innerWidth; fallbackCanvas.height = slideElement.offsetHeight || window.innerHeight; if (fallbackCtx) { fallbackCtx.fillStyle = '#1a1a1a'; fallbackCtx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height); } } return; } const { canvas, ctx, colorCanvas, colorCtx } = data; const containerWidth = slideElement.offsetWidth || window.innerWidth; const containerHeight = slideElement.offsetHeight || window.innerHeight; if (canvas.width !== containerWidth || canvas.height !== containerHeight || canvas.width === 0) { canvas.width = containerWidth; canvas.height = containerHeight; } if (colorCanvas.width !== containerWidth || colorCanvas.height !== containerHeight || colorCanvas.width === 0) { colorCanvas.width = containerWidth; colorCanvas.height = containerHeight; } ctx.clearRect(0, 0, canvas.width, canvas.height); colorCtx.clearRect(0, 0, colorCanvas.width, colorCanvas.height); if (!img || !img.complete || typeof img.naturalWidth === "undefined" || img.naturalWidth === 0) { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; } const imgAspect = img.naturalWidth / img.naturalHeight; const containerAspect = canvas.width / canvas.height; let drawWidth, drawHeight, drawX, drawY; if (imgAspect > containerAspect) { drawHeight = canvas.height; drawWidth = drawHeight * imgAspect; drawX = (canvas.width - drawWidth) / 2; drawY = 0; } else { drawWidth = canvas.width; drawHeight = drawWidth / imgAspect; drawX = 0; drawY = (canvas.height - drawHeight) / 2; } colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'grayscale(100%)'; ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight); ctx.filter = 'none'; }
+function sizeAndDrawInitial(slideElement, img) {
+    const data = canvasData.get(slideElement);
+    if (!data || !data.canvas || !data.ctx || !data.colorCanvas || !data.colorCtx) {
+        const fallbackCanvas = slideElement.querySelector('.background-canvas');
+        if (fallbackCanvas) {
+            const fallbackCtx = fallbackCanvas.getContext('2d');
+            fallbackCanvas.width = slideElement.offsetWidth || window.innerWidth;
+            fallbackCanvas.height = slideElement.offsetHeight || window.innerHeight;
+            if (fallbackCtx) {
+                fallbackCtx.fillStyle = '#1a1a1a';
+                fallbackCtx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+            }
+        }
+        return;
+    }
+
+    const { canvas, ctx, colorCanvas, colorCtx } = data;
+    
+    const dpr = window.devicePixelRatio || 1;
+    const containerWidth = slideElement.offsetWidth || window.innerWidth;
+    const containerHeight = slideElement.offsetHeight || window.innerHeight;
+
+    const physicalWidth = containerWidth * dpr;
+    const physicalHeight = containerHeight * dpr;
+
+    if (canvas.width !== physicalWidth || canvas.height !== physicalHeight) {
+        canvas.width = physicalWidth;
+        canvas.height = physicalHeight;
+    }
+    if (colorCanvas.width !== physicalWidth || colorCanvas.height !== physicalHeight) {
+        colorCanvas.width = physicalWidth;
+        colorCanvas.height = physicalHeight;
+    }
+
+    canvas.style.width = `${containerWidth}px`;
+    canvas.style.height = `${containerHeight}px`;
+
+    ctx.imageSmoothingEnabled = false;
+    colorCtx.imageSmoothingEnabled = false;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    colorCtx.clearRect(0, 0, colorCanvas.width, colorCanvas.height);
+
+    if (!img || !img.complete || typeof img.naturalWidth === "undefined" || img.naturalWidth === 0) {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+
+    const imgAspect = img.naturalWidth / img.naturalHeight;
+    const containerAspect = canvas.width / canvas.height;
+    let drawWidth, drawHeight, drawX, drawY;
+
+    if (imgAspect > containerAspect) {
+        drawHeight = canvas.height;
+        drawWidth = drawHeight * imgAspect;
+        drawX = (canvas.width - drawWidth) / 2;
+        drawY = 0;
+    } else {
+        drawWidth = canvas.width;
+        drawHeight = drawWidth / imgAspect;
+        drawX = 0;
+        drawY = (canvas.height - drawHeight) / 2;
+    }
+
+    colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+    ctx.filter = 'grayscale(100%)';
+    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+    ctx.filter = 'none';
+}
+
+// <<< THIS IS THE UPDATED FUNCTION FOR THE REVEAL BUBBLE COORDINATES >>>
 function revealLoop() {
+    // Keep the logical position for the CSS element and lerping
     if (!isPinching) {
         const posLerpAmount = BUBBLE_SLOW_FOLLOW_SPEED;
         revealerX += (mouseX - revealerX) * posLerpAmount;
         revealerY += (mouseY - revealerY) * posLerpAmount;
     }
     colorRevealer.style.transform = `translate(${revealerX}px, ${revealerY}px) translate(-50%, -50%)`;
+    
+    // Keep the logical radius for sizing logic
     if (!isPinching) {
         const sizeDifference = targetRevealRadius - currentRevealRadius;
         if (Math.abs(sizeDifference) > 0.01) {
@@ -248,24 +321,42 @@ function revealLoop() {
             updateBubbleSize();
         }
     }
+
     if (!currentCtx || !currentColorCanvas || !currentColorCtx) {
         animationFrameId = requestAnimationFrame(revealLoop);
         return;
     }
+
+    // --- START OF FIX ---
+    
+    // 1. Get the device pixel ratio
+    const dpr = window.devicePixelRatio || 1;
+
+    // 2. Convert the logical bubble position and radius to physical canvas coordinates
+    const physicalRevealerX = revealerX * dpr;
+    const physicalRevealerY = revealerY * dpr;
+    const physicalRadius = currentRevealRadius * dpr;
+
+    // 3. Use the PHYSICAL values for all canvas drawing operations
     currentCtx.save();
     currentCtx.beginPath();
-    currentCtx.arc(revealerX, revealerY, currentRevealRadius, 0, Math.PI * 2);
+    currentCtx.arc(physicalRevealerX, physicalRevealerY, physicalRadius, 0, Math.PI * 2);
     currentCtx.clip();
-    const sx = revealerX - currentRevealRadius;
-    const sy = revealerY - currentRevealRadius;
-    const sWidth = currentRevealRadius * 2;
-    const sHeight = currentRevealRadius * 2;
+    
+    const sx = physicalRevealerX - physicalRadius;
+    const sy = physicalRevealerY - physicalRadius;
+    const sWidth = physicalRadius * 2;
+    const sHeight = physicalRadius * 2;
+
+    // --- END OF FIX ---
+
     const clampedSx = Math.max(0, Math.min(sx, currentColorCanvas.width - 1));
     const clampedSy = Math.max(0, Math.min(sy, currentColorCanvas.height - 1));
     let clampedSWidth = sWidth;
     if (clampedSx + clampedSWidth > currentColorCanvas.width) clampedSWidth = currentColorCanvas.width - clampedSx;
     let clampedSHeight = sHeight;
     if (clampedSy + clampedSHeight > currentColorCanvas.height) clampedSHeight = currentColorCanvas.height - clampedSy;
+
     if (clampedSWidth > 0 && clampedSHeight > 0) {
         try {
             currentCtx.drawImage(currentColorCanvas, clampedSx, clampedSy, clampedSWidth, clampedSHeight, clampedSx, clampedSy, clampedSWidth, clampedSHeight);
@@ -273,9 +364,11 @@ function revealLoop() {
             console.error("Error drawing image in revealLoop:", e);
         }
     }
+
     currentCtx.restore();
     animationFrameId = requestAnimationFrame(revealLoop);
 }
+
 function showSlideVisuals(targetVisualIndex) { if (targetVisualIndex === currentVisualSlideIndex && slides[targetVisualIndex].classList.contains('current-slide') && canvasData.has(slides[targetVisualIndex])) { if (experienceHasStarted) startRevealAnimation(); return; } currentVisualSlideIndex = targetVisualIndex; slides.forEach((slide, i) => { if (i === currentVisualSlideIndex) { slide.classList.add('current-slide'); initSlideCanvas(slide, i, false); } else { slide.classList.remove('current-slide'); } }); if (experienceHasStarted) { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId = null; const activeSlideData = canvasData.get(slides[currentVisualSlideIndex]); if (activeSlideData && activeSlideData.ctx && activeSlideData.colorCanvas && activeSlideData.colorCtx) { currentCanvas = activeSlideData.canvas; currentCtx = activeSlideData.ctx; currentColorCanvas = activeSlideData.colorCanvas; currentColorCtx = activeSlideData.colorCtx; startRevealAnimation(); } } }
 prevButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex - 1 + slides.length) % slides.length; showSlideVisuals(newVisualSlideIndex); });
 nextButton.addEventListener('click', () => { const newVisualSlideIndex = (currentVisualSlideIndex + 1) % slides.length; showSlideVisuals(newVisualSlideIndex); });
