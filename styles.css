@@ -17,6 +17,10 @@ html, body {
   font-size: 100%; 
   background-color: #1a1a1a;
   font-family: 'Montserrat', sans-serif;
+  
+  /* --- FIX ADDED HERE --- */
+  /* Prevents pull-to-refresh on mobile and overscroll glow/bounce on desktop. */
+  overscroll-behavior-y: contain;
 }
 
 /* REFACTORED: The 'cursor: none' is now applied only when the experience starts via JS. */
