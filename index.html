@@ -4,38 +4,45 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Louis | Composer</title>
+  
+  <!-- Fonts & Stylesheets -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <link rel="stylesheet" href="styles.css">
 
-  <!-- Add GSAP library (Optional, but useful for smooth animations if needed later) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <!-- PERFORMANCE BEST PRACTICE: Scripts deferred in the head. -->
+  <script src="https://cdn.plyr.io/3.7.8/plyr.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
+  <script src="script.js" defer></script>
 </head>
 <body>
-  <!-- The unmute overlay for first-time visitors -->
+  
+  <h1 class="sr-only">Louis Papalouis | Composer</h1>
+
   <div id="unmute-overlay">
-    <h1>ENTER</h1>
+    <!-- UPDATED: Changed from H1 to P for better semantic HTML. The primary H1 is now the sr-only one. -->
+    <p>ENTER</p>
   </div>
 
-  <!-- The Bubble Cursor -->
   <div id="color-revealer"></div>
 
-  <div class="gallery">
-    <!-- Slides will be dynamically generated here by script.js -->
-  </div>
+  <main>
+    <div class="gallery">
+      <!-- Slides will be dynamically generated here by script.js -->
+    </div>
+    <button class="nav-button" id="prev" aria-label="Previous Slide">‹</button>
+    <button class="nav-button" id="next" aria-label="Next Slide">›</button>
+  </main>
 
   <div class="side-buttons">
     <button class="menu-button" id="about-btn">ABOUT</button>
     <button class="menu-button" id="work-btn">WORK</button>
     <button class="menu-button" id="contact-btn">CONTACT</button>
-    <!-- NEW: The reset button -->
     <button class="menu-button" id="reset-btn">RESET</button>
   </div>
 
-  <button class="nav-button" id="prev" aria-label="Previous Slide">‹</button>
-  <button class="nav-button" id="next" aria-label="Next Slide">›</button>
-
-  <!-- Bottom sheets -->
   <div class="bottom-sheet" id="about-sheet" role="dialog" aria-modal="true" aria-labelledby="about-sheet-title">
     <div class="sheet-content">
       <button class="sheet-close" aria-label="Close About panel">×</button>
@@ -59,18 +66,23 @@
     <div class="sheet-content">
       <button class="sheet-close" aria-label="Close Contact panel">×</button>
       <h2 id="contact-sheet-title">Contact</h2>
-      <form id="contact-form">
-        <input type="text" name="name" placeholder="Your Name" required>
-        <input type="email" name="email" placeholder="Your Email" required>
-        <textarea name="message" placeholder="Your Message" rows="4" required></textarea>
+      <form id="contact-form" novalidate>
+        <!-- ACCESSIBILITY: Added <label> for each form field. The .sr-only class hides it visually. -->
+        <label for="name" class="sr-only">Your Name</label>
+        <input type="text" id="name" name="name" placeholder="Your Name" required>
+        
+        <label for="email" class="sr-only">Your Email</label>
+        <input type="email" id="email" name="email" placeholder="Your Email" required>
+        
+        <label for="message" class="sr-only">Your Message</label>
+        <textarea id="message" name="message" placeholder="Your Message" required></textarea>
+        
+        <div class="form-feedback" aria-live="polite"></div>
         <button type="submit">Send</button>
       </form>
     </div>
   </div>
 
   <audio id="player" controls></audio>
-
-  <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
-  <script src="script.js"></script>
 </body>
 </html>
