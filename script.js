@@ -52,7 +52,7 @@ const state = {
     contactFormTimeoutId: null,
 };
 
-// --- NEW --- State to track current layout mode (mobile vs. desktop)
+// State to track current layout mode (mobile vs. desktop)
 let currentLayoutIsMobile = null;
 
 // --- DOM ELEMENT REFERENCES ---
@@ -111,44 +111,23 @@ function createGreyscaleImageData(sourceCtx, width, height) {
 
 // --- CORE APPLICATION LOGIC ---
 
-/**
- * REPLACED FUNCTION: Implements the V1 "fade-out/fade-in" reset effect.
- * This provides the desired visual "hard reset" feel, while integrating
- * with V2's state management and efficient drawing to maintain performance.
- */
 function resetColorReveal() {
     closeAllSheets();
-
-    // Set the state to greyscale immediately. This stops the color reveal effect
-    // and ensures the app is in the correct logical state.
     state.isGreyscale = true;
-
     const currentSlideElement = state.slides[state.currentVisualSlideIndex];
     const data = state.canvasData.get(currentSlideElement);
-
-    // We must have canvas data to perform the effect.
     if (!data?.canvas || !data.img) {
         console.warn("Reset called but no canvas data available. State set to greyscale.");
         return;
     }
-
     const { canvas, img } = data;
-
-    // Use GSAP for a robust fade animation, mimicking the V1 effect.
     gsap.to(canvas, {
         opacity: 0,
         duration: 0.4,
         ease: 'power1.out',
         onComplete: () => {
-            // Once hidden, redraw the canvas with the base greyscale image.
             sizeAndDrawInitial(currentSlideElement, img);
-
-            // Fade the newly greyscale canvas back into view.
-            gsap.to(canvas, {
-                opacity: 1,
-                duration: 0.4,
-                ease: 'power1.in'
-            });
+            gsap.to(canvas, { opacity: 1, duration: 0.4, ease: 'power1.in' });
         }
     });
 }
@@ -297,35 +276,25 @@ function sizeAndDrawInitial(slideElement, img) {
 
 function revealLoop() {
     const data = state.canvasData.get(state.slides[state.currentVisualSlideIndex]);
-    
     const isBubbleStatic = Math.abs(state.targetRevealRadius - state.currentRevealRadius) < 0.1;
-    
-    // If in greyscale mode, do not draw the color reveal.
     if (state.isGreyscale || (!state.isMouseMoving && !state.isPinching && isBubbleStatic)) {
         state.animationFrameId = requestAnimationFrame(revealLoop);
         return;
     }
-    
-    // Lerp positions for smooth following
     state.revealerX = UTILS.lerp(state.revealerX, state.mouseX, CONFIG.BUBBLE_FOLLOW_LERP_SPEED);
     state.revealerY = UTILS.lerp(state.revealerY, state.mouseY, CONFIG.BUBBLE_FOLLOW_LERP_SPEED);
     state.currentRevealRadius = UTILS.lerp(state.currentRevealRadius, state.targetRevealRadius, CONFIG.BUBBLE_SIZE_LERP_SPEED);
-    
     updateBubbleSize();
     DOM.colorRevealer.style.transform = `translate(${state.revealerX}px, ${state.revealerY}px) translate(-50%, -50%)`;
-
     if (!data?.ctx || !data.colorCanvas) {
         state.animationFrameId = requestAnimationFrame(revealLoop);
         return;
     }
-
     const { ctx, colorCanvas } = data;
     const dpr = window.devicePixelRatio || 1;
     const physicalRevealerX = state.revealerX * dpr;
     const physicalRevealerY = state.revealerY * dpr;
     const physicalRadius = state.currentRevealRadius * dpr;
-    
-    // Draw the colored circle onto the main canvas
     ctx.save();
     ctx.beginPath();
     ctx.arc(physicalRevealerX, physicalRevealerY, physicalRadius, 0, Math.PI * 2);
@@ -336,7 +305,6 @@ function revealLoop() {
         console.error("Error drawing image in revealLoop:", e);
     }
     ctx.restore();
-    
     state.animationFrameId = requestAnimationFrame(revealLoop);
 }
 
@@ -395,7 +363,6 @@ function updateRevealerPosition(event) {
         state.isGreyscale = false;
         sizeAndDrawInitial(state.slides[state.currentVisualSlideIndex], state.canvasData.get(state.slides[state.currentVisualSlideIndex]).img);
     }
-
     let pageX, pageY, target;
     if (event.touches?.length > 0) { pageX = event.touches[0].pageX; pageY = event.touches[0].pageY; target = document.elementFromPoint(pageX, pageY); } else { pageX = event.pageX; pageY = event.pageY; target = event.target; }
     state.mouseX = pageX; state.mouseY = pageY; state.isMouseMoving = true;
@@ -407,50 +374,26 @@ function updateRevealerPosition(event) {
 
 function updateBubbleSize() { if (!DOM.colorRevealer) return; const diameter = state.currentRevealRadius * 2; DOM.colorRevealer.style.width = `${diameter}px`; DOM.colorRevealer.style.height = `${diameter}px`; }
 
-// --- NEW --- Non-destructive resize function for minor viewport changes
 function resizeAllCanvases() {
-    // Iterate over all the canvases that have already been initialized
     for (const [slideElement, data] of state.canvasData.entries()) {
-        // We only care about resizing canvases that have a valid, loaded image
         if (data && data.img && data.img.complete) {
-            // This function already contains the logic to resize the canvas
-            // element and redraw the image with the correct aspect ratio.
-            // We are just re-running it with the image we already have in memory.
             sizeAndDrawInitial(slideElement, data.img);
         }
     }
 }
 
-// --- MODIFIED --- Replaced the original `handleResize` function
 function handleResize() {
     stopRevealAnimation();
-
     const newLayoutIsMobile = UTILS.isMobileLayout();
-
-    // Check if the layout type has fundamentally changed (e.g., desktop to mobile)
     if (newLayoutIsMobile !== currentLayoutIsMobile) {
-        // --- MAJOR LAYOUT CHANGE ---
-        // The layout type has changed, so we NEED to load different images.
-        // This is the "hard reset" path.
         console.log('Major layout change detected. Reloading assets.');
-        currentLayoutIsMobile = newLayoutIsMobile; // Update the state
-
-        // Clear all cached image and canvas data
+        currentLayoutIsMobile = newLayoutIsMobile;
         state.canvasData.clear();
-        
-        // Re-initialize the gallery structure and re-show the current slide
-        // to trigger loading of the appropriate new images.
         initGallery();
         showSlide(state.currentVisualSlideIndex);
-
     } else {
-        // --- MINOR RESIZE ---
-        // The layout is the same (e.g., iOS toolbar hide/show).
-        // No need to re-download. Just resize what we have.
         resizeAllCanvases();
     }
-    
-    // Restart the animation loop after a brief delay to ensure drawing is complete.
     setTimeout(() => {
         if (state.experienceHasStarted) {
             startRevealAnimation();
@@ -479,7 +422,6 @@ function handleTouchMove(event) {
         state.isGreyscale = false;
         sizeAndDrawInitial(state.slides[state.currentVisualSlideIndex], state.canvasData.get(state.slides[state.currentVisualSlideIndex]).img);
     }
-    
     if (state.isPinching && event.touches.length === 2) {
         event.preventDefault(); const [t1, t2] = event.touches; const currentPinchDistance = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
         const scaleFactor = currentPinchDistance / state.initialPinchDistance;
@@ -502,7 +444,8 @@ function handleSheetTouchEnd(event) {
 }
 
 function initEventListeners() {
-    DOM.prevButton.addEventListener('click', () => handleNavButtonClick(-1)); DOM.nextButton.addEventListener('click', () => handleNavButtonClick(1));
+    DOM.prevButton.addEventListener('click', () => handleNavButtonClick(-1));
+    DOM.nextButton.addEventListener('click', () => handleNavButtonClick(1));
     Object.entries(DOM.sheetButtons).forEach(([name, button]) => { button.addEventListener('click', () => toggleSheet(name)); });
     document.querySelectorAll('.sheet-close').forEach(btn => btn.addEventListener('click', closeAllSheets));
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.activeSheet) closeAllSheets(); });
@@ -513,14 +456,32 @@ function initEventListeners() {
     document.addEventListener('touchend', handleTouchEnd);
     window.addEventListener('resize', UTILS.debounce(handleResize, 250));
     document.addEventListener('wheel', handleBubbleResize, { passive: false });
-    
-    // MODIFIED: The reset button now triggers a fade-out/fade-in effect similar to V1.
     DOM.resetBtn?.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent the click from re-coloring immediately.
-        resetColorReveal(); 
+        e.stopPropagation();
+        resetColorReveal();
+    });
+    Object.values(DOM.sheets).forEach(sheet => {
+        sheet.addEventListener('touchstart', handleSheetTouchStart, { passive: true });
+        sheet.addEventListener('touchend', handleSheetTouchEnd);
     });
 
-    Object.values(DOM.sheets).forEach(sheet => { sheet.addEventListener('touchstart', handleSheetTouchStart, { passive: true }); sheet.addEventListener('touchend', handleSheetTouchEnd); });
+    // --- NEW: PREVENT DOUBLE-TAP ZOOM ON MOBILE ---
+    // This uses a closure to keep track of the last tap time.
+    let lastTap = 0;
+    document.addEventListener('touchend', (event) => {
+        // Only run on touch devices after the experience has started
+        if (!UTILS.isTouchDevice() || !state.experienceHasStarted) return;
+
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+
+        // If the time between taps is less than 300ms, it's a double tap
+        if (tapLength < 300 && tapLength > 0) {
+            // Prevent the browser's default action (zooming)
+            event.preventDefault();
+        }
+        lastTap = currentTime;
+    });
 }
 
 function initKeyboardHandlers() {
@@ -536,9 +497,7 @@ function initKeyboardHandlers() {
 }
 
 function main() {
-    // --- NEW --- Initialize the layout state tracker on first load.
     currentLayoutIsMobile = UTILS.isMobileLayout();
-
     initGallery();
     initAudioPlayer();
     initEventListeners();
@@ -547,29 +506,22 @@ function main() {
     loadGlobalTrack(state.currentGlobalTrackIndex, false);
     initKeyboardHandlers();
     showSlide(state.currentVisualSlideIndex);
-
-    // ================== FINAL PRODUCTION CODE (Entry Point) ==================
     const overlayText = DOM.unmuteOverlay.querySelector('p');
-
     if (UTILS.isIOS() && UTILS.isMobileLayout()) {
-        // --- iOS Mobile: Use touchend for reliable double-tap ---
         overlayText.textContent = 'DOUBLE TAP TO ENTER';
         let lastTapTime = 0;
-        const doubleTapThreshold = 400; // Time in ms
-
+        const doubleTapThreshold = 400;
         DOM.unmuteOverlay.addEventListener('touchend', (event) => {
             event.preventDefault();
             if (state.experienceHasStarted) return;
             const currentTime = new Date().getTime();
             const timeSinceLastTap = currentTime - lastTapTime;
-
             if (timeSinceLastTap < doubleTapThreshold && timeSinceLastTap > 0) {
                 const startExperience = () => {
                     DOM.unmuteOverlay.classList.add('hidden');
                     state.experienceHasStarted = true;
                     DOM.body.classList.add('experience-started');
                     startRevealAnimation();
-                    
                     const playPromise = state.player.play();
                     if (playPromise !== undefined) {
                         playPromise.then(() => {
@@ -579,7 +531,6 @@ function main() {
                         fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
                     }
                 };
-                
                 if (document.documentElement.requestFullscreen) {
                     document.documentElement.requestFullscreen()
                         .then(startExperience)
@@ -591,27 +542,21 @@ function main() {
                     startExperience();
                 }
             }
-            
             lastTapTime = currentTime;
         });
-
     } else {
-        // --- Other Devices (Android, Desktop): Use simple click logic ---
         overlayText.textContent = 'ENTER';
         DOM.unmuteOverlay.addEventListener('click', () => {
             if (state.experienceHasStarted) return;
-
             if (UTILS.isMobileLayout() && document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(err => {
                     console.warn(`Fullscreen request failed: ${err.message} (${err.name})`);
                 });
             }
-
             DOM.unmuteOverlay.classList.add('hidden');
             state.experienceHasStarted = true;
             DOM.body.classList.add('experience-started');
             startRevealAnimation();
-            
             state.initialPlayTimeout = setTimeout(() => {
                 state.player.play().catch(e => console.error("Auto-play failed:", e));
                 fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
