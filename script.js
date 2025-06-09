@@ -674,6 +674,22 @@ function main() {
     showSlide(state.currentVisualSlideIndex);
 
     DOM.unmuteOverlay.addEventListener('click', () => {
+        // --- START: FULLSCREEN ON MOBILE MODIFICATION ---
+        // On mobile devices, attempt to enter fullscreen mode to hide the browser UI (like the address bar).
+        // This can only be triggered by a direct user interaction, so this is the perfect place for it.
+        if (UTILS.isMobileLayout()) {
+            const docEl = document.documentElement;
+            // Check for API availability before calling it.
+            if (docEl.requestFullscreen) {
+                docEl.requestFullscreen().catch(err => {
+                    // Log a warning if the request fails (e.g., user denies it). 
+                    // This is not a critical error, so the site will still function.
+                    console.warn(`Fullscreen request failed: ${err.message} (${err.name})`);
+                });
+            }
+        }
+        // --- END: FULLSCREEN ON MOBILE MODIFICATION ---
+
         DOM.unmuteOverlay.classList.add('hidden');
         state.experienceHasStarted = true;
         DOM.body.classList.add('experience-started'); // Applies cursor: none
