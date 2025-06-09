@@ -1,4 +1,4 @@
-// --- script.js - Refactored for Best Practices ---
+// --- script.js - Refactored for Best Practices & Seamless Reset ---
 
 // --- CONFIGURATION ---
 const CONFIG = {
@@ -31,6 +31,7 @@ const state = {
     currentVisualSlideIndex: 0,
     currentGlobalTrackIndex: 0,
     experienceHasStarted: false,
+    isGreyscale: false, // Flag for visual-only reset state.
     volumeFadeInterval: null,
     initialPlayTimeout: null,
     animationFrameId: null,
@@ -106,6 +107,49 @@ function createGreyscaleImageData(sourceCtx, width, height) {
 }
 
 // --- CORE APPLICATION LOGIC ---
+
+/**
+ * REPLACED FUNCTION: Implements the V1 "fade-out/fade-in" reset effect.
+ * This provides the desired visual "hard reset" feel, while integrating
+ * with V2's state management and efficient drawing to maintain performance.
+ */
+function resetColorReveal() {
+    closeAllSheets();
+
+    // Set the state to greyscale immediately. This stops the color reveal effect
+    // and ensures the app is in the correct logical state.
+    state.isGreyscale = true;
+
+    const currentSlideElement = state.slides[state.currentVisualSlideIndex];
+    const data = state.canvasData.get(currentSlideElement);
+
+    // We must have canvas data to perform the effect.
+    if (!data?.canvas || !data.img) {
+        console.warn("Reset called but no canvas data available. State set to greyscale.");
+        return;
+    }
+
+    const { canvas, img } = data;
+
+    // Use GSAP for a robust fade animation, mimicking the V1 effect.
+    gsap.to(canvas, {
+        opacity: 0,
+        duration: 0.4,
+        ease: 'power1.out',
+        onComplete: () => {
+            // Once hidden, redraw the canvas with the base greyscale image.
+            sizeAndDrawInitial(currentSlideElement, img);
+
+            // Fade the newly greyscale canvas back into view.
+            gsap.to(canvas, {
+                opacity: 1,
+                duration: 0.4,
+                ease: 'power1.in'
+            });
+        }
+    });
+}
+
 function initAudioPlayer() {
     const player = new Plyr(DOM.playerElement, {
         controls: ['play', 'rewind', 'fast-forward', 'progress', 'mute', 'volume'],
@@ -138,6 +182,7 @@ function initAudioPlayer() {
         }
     });
 }
+
 function fadeVolumeIn(targetVolume, duration) {
     if (state.volumeFadeInterval) clearInterval(state.volumeFadeInterval);
     state.player.volume = 0;
@@ -155,6 +200,7 @@ function fadeVolumeIn(targetVolume, duration) {
         }
     }, intervalTime);
 }
+
 function loadGlobalTrack(globalTrackIdx, playImmediately = true) {
     if (playImmediately && state.experienceHasStarted) {
         if (state.volumeFadeInterval) {
@@ -178,8 +224,11 @@ function loadGlobalTrack(globalTrackIdx, playImmediately = true) {
         state.player.play().catch(e => console.warn("Autoplay failed:", e));
     }
 }
+
 function handleNextTrack() { let nextTrackIndex = (state.currentGlobalTrackIndex + 1) % allUniqueTracks.length; loadGlobalTrack(nextTrackIndex, true); }
+
 function handlePrevTrack() { let prevTrackIndex = (state.currentGlobalTrackIndex - 1 + allUniqueTracks.length) % allUniqueTracks.length; loadGlobalTrack(prevTrackIndex, true); }
+
 function initGallery() {
     DOM.gallery.innerHTML = '';
     const imagesToUse = UTILS.isMobileLayout() ? backgroundImages.mobile : backgroundImages.desktop;
@@ -194,7 +243,9 @@ function initGallery() {
     });
     state.slides = document.querySelectorAll('.slide');
 }
+
 function getImageUrlForSlide(index) { const imageSet = UTILS.isMobileLayout() ? backgroundImages.mobile : backgroundImages.desktop; return imageSet[index % imageSet.length]; }
+
 function initSlideCanvas(slideElement, index, forceReload = false) {
     const canvas = slideElement.querySelector('.background-canvas');
     if (!canvas) return;
@@ -215,6 +266,7 @@ function initSlideCanvas(slideElement, index, forceReload = false) {
     img.onerror = (err) => { console.error(`Failed to load image for slide ${index}:`, getImageUrlForSlide(index), err); sizeAndDrawInitial(slideElement, null); };
     img.src = getImageUrlForSlide(index);
 }
+
 function sizeAndDrawInitial(slideElement, img) {
     const data = state.canvasData.get(slideElement);
     if (!data?.canvas || !data.ctx) return;
@@ -239,28 +291,56 @@ function sizeAndDrawInitial(slideElement, img) {
     const greyImageData = createGreyscaleImageData(colorCtx, canvas.width, canvas.height);
     ctx.putImageData(greyImageData, 0, 0);
 }
+
 function revealLoop() {
     const data = state.canvasData.get(state.slides[state.currentVisualSlideIndex]);
+    
     const isBubbleStatic = Math.abs(state.targetRevealRadius - state.currentRevealRadius) < 0.1;
-    if (!state.isMouseMoving && !state.isPinching && isBubbleStatic) { state.animationFrameId = requestAnimationFrame(revealLoop); return; }
+    
+    // If in greyscale mode, do not draw the color reveal.
+    if (state.isGreyscale || (!state.isMouseMoving && !state.isPinching && isBubbleStatic)) {
+        state.animationFrameId = requestAnimationFrame(revealLoop);
+        return;
+    }
+    
+    // Lerp positions for smooth following
     state.revealerX = UTILS.lerp(state.revealerX, state.mouseX, CONFIG.BUBBLE_FOLLOW_LERP_SPEED);
     state.revealerY = UTILS.lerp(state.revealerY, state.mouseY, CONFIG.BUBBLE_FOLLOW_LERP_SPEED);
     state.currentRevealRadius = UTILS.lerp(state.currentRevealRadius, state.targetRevealRadius, CONFIG.BUBBLE_SIZE_LERP_SPEED);
+    
     updateBubbleSize();
     DOM.colorRevealer.style.transform = `translate(${state.revealerX}px, ${state.revealerY}px) translate(-50%, -50%)`;
-    if (!data?.ctx || !data.colorCanvas) { state.animationFrameId = requestAnimationFrame(revealLoop); return; }
+
+    if (!data?.ctx || !data.colorCanvas) {
+        state.animationFrameId = requestAnimationFrame(revealLoop);
+        return;
+    }
+
     const { ctx, colorCanvas } = data;
     const dpr = window.devicePixelRatio || 1;
     const physicalRevealerX = state.revealerX * dpr;
     const physicalRevealerY = state.revealerY * dpr;
     const physicalRadius = state.currentRevealRadius * dpr;
-    ctx.save(); ctx.beginPath(); ctx.arc(physicalRevealerX, physicalRevealerY, physicalRadius, 0, Math.PI * 2); ctx.clip();
-    try { ctx.drawImage(colorCanvas, 0, 0); } catch (e) { console.error("Error drawing image in revealLoop:", e); }
+    
+    // Draw the colored circle onto the main canvas
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(physicalRevealerX, physicalRevealerY, physicalRadius, 0, Math.PI * 2);
+    ctx.clip();
+    try {
+        ctx.drawImage(colorCanvas, 0, 0);
+    } catch (e) {
+        console.error("Error drawing image in revealLoop:", e);
+    }
     ctx.restore();
+    
     state.animationFrameId = requestAnimationFrame(revealLoop);
 }
+
 function startRevealAnimation() { if (state.animationFrameId) cancelAnimationFrame(state.animationFrameId); if (state.canvasData.has(state.slides[state.currentVisualSlideIndex])) { state.animationFrameId = requestAnimationFrame(revealLoop); } }
+
 function stopRevealAnimation() { if (state.animationFrameId) { cancelAnimationFrame(state.animationFrameId); state.animationFrameId = null; } }
+
 function showSlide(targetIndex) {
     if (targetIndex === state.currentVisualSlideIndex && state.slides[targetIndex].classList.contains('current-slide')) return;
     stopRevealAnimation();
@@ -269,10 +349,15 @@ function showSlide(targetIndex) {
     if (state.experienceHasStarted) startRevealAnimation();
     preloadNeighborSlides(state.currentVisualSlideIndex);
 }
+
 function preloadNeighborSlides(currentIndex) { const offsets = [-2, -1, 1, 2]; const totalSlides = state.slides.length; offsets.forEach(offset => { const targetIndex = (currentIndex + offset + totalSlides) % totalSlides; const slideElement = state.slides[targetIndex]; if (slideElement && !state.canvasData.has(slideElement)) { initSlideCanvas(slideElement, targetIndex, false); } }); }
+
 function handleNavButtonClick(direction) { const newIndex = (state.currentVisualSlideIndex + direction + state.slides.length) % state.slides.length; showSlide(newIndex); }
+
 function toggleSheet(sheetName) { const sheetElement = DOM.sheets[sheetName]; const isVisible = sheetElement.classList.contains('visible'); closeAllSheets(); if (!isVisible) { sheetElement.classList.add('visible'); state.activeSheet = sheetElement; sheetElement.querySelector('h2, li[tabindex="0"], input, textarea, button, .sheet-close')?.focus(); } }
+
 function closeAllSheets() { if (state.activeSheet === DOM.sheets.contact) { resetContactForm(); } Object.values(DOM.sheets).forEach(s => s.classList.remove('visible')); state.activeSheet = null; }
+
 function setContactFormState(formState) {
     const submitButton = DOM.contactForm.querySelector('button[type="submit"]'); const feedbackEl = DOM.contactForm.querySelector('.form-feedback');
     submitButton.disabled = false; submitButton.classList.remove('feedback-active'); feedbackEl.classList.remove('visible', 'success', 'error');
@@ -285,7 +370,9 @@ function setContactFormState(formState) {
         case 'idle': default: submitButton.disabled = false; submitButton.textContent = 'Send'; break;
     }
 }
+
 function resetContactForm() { if (!DOM.contactForm) return; DOM.contactForm.reset(); setContactFormState('idle'); }
+
 function handleContactFormSubmit(e) {
     e.preventDefault(); setContactFormState('sending');
     const fd = new FormData(DOM.contactForm);
@@ -295,9 +382,17 @@ function handleContactFormSubmit(e) {
     .then(data => { if (data.success) { DOM.contactForm.reset(); setContactFormState('success'); } else { throw new Error(data.error || 'An unknown logical error occurred.'); } })
     .catch(error => { console.error('Form Submission Error:', error); if (error.message && error.message.includes('Missing required fields')) { setContactFormState('validationError'); } else { setContactFormState('serverError'); } });
 }
+
 function populateWorkSheet() { DOM.workTrackListElement.innerHTML = ''; allUniqueTracks.forEach((track, globalIdx) => { const li = document.createElement('li'); li.textContent = track.title; li.dataset.globalTrackIndex = globalIdx; li.setAttribute('role', 'button'); li.setAttribute('tabindex', '0'); li.addEventListener('click', () => loadGlobalTrack(globalIdx, true)); li.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); loadGlobalTrack(globalIdx, true); } }); DOM.workTrackListElement.appendChild(li); }); }
+
 function updateWorkSheetHighlight(playingGlobalTrackIdx) { const allTrackItems = DOM.workTrackListElement.querySelectorAll('li'); allTrackItems.forEach(item => { const isCurrent = parseInt(item.dataset.globalTrackIndex) === playingGlobalTrackIdx; item.classList.toggle('current-track-item', isCurrent); item.setAttribute('aria-current', isCurrent ? 'true' : 'false'); if (isCurrent && DOM.sheets.work.classList.contains('visible')) { item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }); }
+
 function updateRevealerPosition(event) {
+    if (state.isGreyscale) {
+        state.isGreyscale = false;
+        sizeAndDrawInitial(state.slides[state.currentVisualSlideIndex], state.canvasData.get(state.slides[state.currentVisualSlideIndex]).img);
+    }
+
     let pageX, pageY, target;
     if (event.touches?.length > 0) { pageX = event.touches[0].pageX; pageY = event.touches[0].pageY; target = document.elementFromPoint(pageX, pageY); } else { pageX = event.pageX; pageY = event.pageY; target = event.target; }
     state.mouseX = pageX; state.mouseY = pageY; state.isMouseMoving = true;
@@ -306,8 +401,11 @@ function updateRevealerPosition(event) {
     const isOverInteractive = target?.closest(interactiveSelector);
     DOM.colorRevealer.style.opacity = isOverInteractive ? '0' : '1';
 }
+
 function updateBubbleSize() { if (!DOM.colorRevealer) return; const diameter = state.currentRevealRadius * 2; DOM.colorRevealer.style.width = `${diameter}px`; DOM.colorRevealer.style.height = `${diameter}px`; }
+
 function handleResize() { stopRevealAnimation(); state.slides.forEach((slide, index) => initSlideCanvas(slide, index, true)); setTimeout(() => { if (state.experienceHasStarted) startRevealAnimation(); }, 100); }
+
 function handleBubbleResize(event) {
     if (!state.experienceHasStarted || UTILS.isTouchDevice()) return; if (event.target.closest('.sheet-content')) return;
     event.preventDefault(); const delta = event.deltaY * CONFIG.BUBBLE_RESIZE_SENSITIVITY;
@@ -315,12 +413,7 @@ function handleBubbleResize(event) {
     const minRadius = CONFIG.INITIAL_REVEAL_RADIUS * CONFIG.MIN_REVEAL_RADIUS_MULTIPLIER;
     state.targetRevealRadius = Math.max(minRadius, Math.min(maxRadius, state.targetRevealRadius - delta));
 }
-function resetColorReveal() {
-    closeAllSheets(); const currentSlideElement = state.slides[state.currentVisualSlideIndex];
-    const canvas = currentSlideElement?.querySelector('.background-canvas'); if (!canvas) return;
-    canvas.style.transition = 'opacity 0.4s ease-in-out'; canvas.style.opacity = 0;
-    canvas.addEventListener('transitionend', () => { initSlideCanvas(currentSlideElement, state.currentVisualSlideIndex, true); setTimeout(() => { canvas.style.opacity = 1; }, 50); }, { once: true });
-}
+
 function handleTouchStart(event) {
     if (event.touches.length === 2) {
         event.preventDefault(); state.isPinching = true; const [t1, t2] = event.touches;
@@ -328,7 +421,13 @@ function handleTouchStart(event) {
         state.pinchStartRadius = state.currentRevealRadius;
     } else { updateRevealerPosition(event); }
 }
+
 function handleTouchMove(event) {
+    if (state.isGreyscale) {
+        state.isGreyscale = false;
+        sizeAndDrawInitial(state.slides[state.currentVisualSlideIndex], state.canvasData.get(state.slides[state.currentVisualSlideIndex]).img);
+    }
+    
     if (state.isPinching && event.touches.length === 2) {
         event.preventDefault(); const [t1, t2] = event.touches; const currentPinchDistance = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
         const scaleFactor = currentPinchDistance / state.initialPinchDistance;
@@ -339,13 +438,17 @@ function handleTouchMove(event) {
         updateBubbleSize();
     } else if (!state.isPinching) { updateRevealerPosition(event); }
 }
+
 function handleTouchEnd(event) { if (state.isPinching && event.touches.length < 2) { state.isPinching = false; state.initialPinchDistance = 0; } }
+
 function handleSheetTouchStart(event) { if (!UTILS.isTouchDevice() || !state.activeSheet) return; state.touchStartY = event.touches[0].clientY; }
+
 function handleSheetTouchEnd(event) {
     if (!UTILS.isTouchDevice() || !state.activeSheet || state.touchStartY === 0) return;
     const deltaY = event.changedTouches[0].clientY - state.touchStartY;
     if (deltaY > CONFIG.SWIPE_CLOSE_THRESHOLD_Y) { closeAllSheets(); } state.touchStartY = 0;
 }
+
 function initEventListeners() {
     DOM.prevButton.addEventListener('click', () => handleNavButtonClick(-1)); DOM.nextButton.addEventListener('click', () => handleNavButtonClick(1));
     Object.entries(DOM.sheetButtons).forEach(([name, button]) => { button.addEventListener('click', () => toggleSheet(name)); });
@@ -358,9 +461,16 @@ function initEventListeners() {
     document.addEventListener('touchend', handleTouchEnd);
     window.addEventListener('resize', UTILS.debounce(handleResize, 250));
     document.addEventListener('wheel', handleBubbleResize, { passive: false });
-    DOM.resetBtn?.addEventListener('click', resetColorReveal);
+    
+    // MODIFIED: The reset button now triggers a fade-out/fade-in effect similar to V1.
+    DOM.resetBtn?.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent the click from re-coloring immediately.
+        resetColorReveal(); 
+    });
+
     Object.values(DOM.sheets).forEach(sheet => { sheet.addEventListener('touchstart', handleSheetTouchStart, { passive: true }); sheet.addEventListener('touchend', handleSheetTouchEnd); });
 }
+
 function initKeyboardHandlers() {
     if (!UTILS.isTouchDevice() || !DOM.contactForm) return;
     const inputs = DOM.contactForm.querySelectorAll('input, textarea');
@@ -383,7 +493,7 @@ function main() {
     initKeyboardHandlers();
     showSlide(state.currentVisualSlideIndex);
 
-    // ================== FINAL PRODUCTION CODE ==================
+    // ================== FINAL PRODUCTION CODE (Entry Point) ==================
     const overlayText = DOM.unmuteOverlay.querySelector('p');
 
     if (UTILS.isIOS() && UTILS.isMobileLayout()) {
@@ -393,16 +503,12 @@ function main() {
         const doubleTapThreshold = 400; // Time in ms
 
         DOM.unmuteOverlay.addEventListener('touchend', (event) => {
-            // This prevents the delayed "ghost click" from firing after the overlay is gone.
             event.preventDefault();
-
-            if (state.experienceHasStarted) return; // Prevent multiple executions
-            
+            if (state.experienceHasStarted) return;
             const currentTime = new Date().getTime();
             const timeSinceLastTap = currentTime - lastTapTime;
 
             if (timeSinceLastTap < doubleTapThreshold && timeSinceLastTap > 0) {
-                // This is a DOUBLE TAP. Start the experience.
                 const startExperience = () => {
                     DOM.unmuteOverlay.classList.add('hidden');
                     state.experienceHasStarted = true;
@@ -458,7 +564,6 @@ function main() {
             }, CONFIG.INITIAL_PLAY_DELAY);
         }, { once: true });
     }
-    // ==========================================================
 }
 
 document.addEventListener('DOMContentLoaded', main);
