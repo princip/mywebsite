@@ -52,6 +52,9 @@ const state = {
     contactFormTimeoutId: null,
 };
 
+// --- NEW --- State to track current layout mode (mobile vs. desktop)
+let currentLayoutIsMobile = null;
+
 // --- DOM ELEMENT REFERENCES ---
 const DOM = {
     body: document.body,
@@ -404,7 +407,56 @@ function updateRevealerPosition(event) {
 
 function updateBubbleSize() { if (!DOM.colorRevealer) return; const diameter = state.currentRevealRadius * 2; DOM.colorRevealer.style.width = `${diameter}px`; DOM.colorRevealer.style.height = `${diameter}px`; }
 
-function handleResize() { stopRevealAnimation(); state.slides.forEach((slide, index) => initSlideCanvas(slide, index, true)); setTimeout(() => { if (state.experienceHasStarted) startRevealAnimation(); }, 100); }
+// --- NEW --- Non-destructive resize function for minor viewport changes
+function resizeAllCanvases() {
+    // Iterate over all the canvases that have already been initialized
+    for (const [slideElement, data] of state.canvasData.entries()) {
+        // We only care about resizing canvases that have a valid, loaded image
+        if (data && data.img && data.img.complete) {
+            // This function already contains the logic to resize the canvas
+            // element and redraw the image with the correct aspect ratio.
+            // We are just re-running it with the image we already have in memory.
+            sizeAndDrawInitial(slideElement, data.img);
+        }
+    }
+}
+
+// --- MODIFIED --- Replaced the original `handleResize` function
+function handleResize() {
+    stopRevealAnimation();
+
+    const newLayoutIsMobile = UTILS.isMobileLayout();
+
+    // Check if the layout type has fundamentally changed (e.g., desktop to mobile)
+    if (newLayoutIsMobile !== currentLayoutIsMobile) {
+        // --- MAJOR LAYOUT CHANGE ---
+        // The layout type has changed, so we NEED to load different images.
+        // This is the "hard reset" path.
+        console.log('Major layout change detected. Reloading assets.');
+        currentLayoutIsMobile = newLayoutIsMobile; // Update the state
+
+        // Clear all cached image and canvas data
+        state.canvasData.clear();
+        
+        // Re-initialize the gallery structure and re-show the current slide
+        // to trigger loading of the appropriate new images.
+        initGallery();
+        showSlide(state.currentVisualSlideIndex);
+
+    } else {
+        // --- MINOR RESIZE ---
+        // The layout is the same (e.g., iOS toolbar hide/show).
+        // No need to re-download. Just resize what we have.
+        resizeAllCanvases();
+    }
+    
+    // Restart the animation loop after a brief delay to ensure drawing is complete.
+    setTimeout(() => {
+        if (state.experienceHasStarted) {
+            startRevealAnimation();
+        }
+    }, 100);
+}
 
 function handleBubbleResize(event) {
     if (!state.experienceHasStarted || UTILS.isTouchDevice()) return; if (event.target.closest('.sheet-content')) return;
@@ -484,6 +536,9 @@ function initKeyboardHandlers() {
 }
 
 function main() {
+    // --- NEW --- Initialize the layout state tracker on first load.
+    currentLayoutIsMobile = UTILS.isMobileLayout();
+
     initGallery();
     initAudioPlayer();
     initEventListeners();
