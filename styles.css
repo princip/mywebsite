@@ -255,6 +255,18 @@ input, textarea { cursor: text; }
   }
 }
 
+/* 
+ * ADDED: Prioritize Volume on Very Small Screens.
+ * On screens narrower than 380px, the progress bar and volume control
+ * compete for space. This rule hides the less critical progress bar
+ * to ensure the volume control remains fully usable.
+*/
+@media (max-width: 380px) {
+  .plyr--audio .plyr__progress__container {
+    display: none;
+  }
+}
+
 /* === SHEETS (ABOUT, WORK, CONTACT) === */
 .bottom-sheet { 
   position: fixed; 
