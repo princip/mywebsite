@@ -704,85 +704,49 @@ function main() {
     initKeyboardHandlers();
     showSlide(state.currentVisualSlideIndex);
 
-    // ================== MODIFICATION ==================
-    // --- START: CONDITIONAL ENTER LOGIC ---
+    // ================== DEBUGGING CODE ==================
     const overlayText = DOM.unmuteOverlay.querySelector('p');
+    const debugConsole = document.getElementById('debug-console');
 
-    // Check if the device is iOS and in a mobile layout.
+    function logToScreen(message) {
+        if (!debugConsole) return;
+        debugConsole.innerHTML += message + '<br>';
+        debugConsole.scrollTop = debugConsole.scrollHeight; // Auto-scroll
+    }
+
     if (UTILS.isIOS() && UTILS.isMobileLayout()) {
-        // --- iOS Mobile: Double-tap logic ---
         overlayText.textContent = 'DOUBLE TAP TO ENTER';
+        logToScreen('iOS Mobile Detected. Debug listener active.');
+        
         let lastTapTime = 0;
-        const doubleTapThreshold = 400; // Time in ms
-
-        DOM.unmuteOverlay.addEventListener('click', () => {
+        
+        DOM.unmuteOverlay.addEventListener('touchend', (event) => {
+            logToScreen(`Touch End at: ${new Date().getTime()}`);
+            
+            // This is the key line that prevents the "ghost click"
+            event.preventDefault(); 
+            
+            // The rest of the logic is the same...
             const currentTime = new Date().getTime();
             const timeSinceLastTap = currentTime - lastTapTime;
-
-            if (timeSinceLastTap < doubleTapThreshold && timeSinceLastTap > 0) {
-                // This is a DOUBLE TAP.
-                const startExperience = () => {
-                    if (state.experienceHasStarted) return;
-                    
-                    DOM.unmuteOverlay.classList.add('hidden');
-                    state.experienceHasStarted = true;
-                    DOM.body.classList.add('experience-started');
-                    startRevealAnimation();
-                    
-                    const playPromise = state.player.play();
-                    if (playPromise !== undefined) {
-                        playPromise.then(() => {
-                            fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
-                        }).catch(e => console.error("Auto-play failed after gesture:", e));
-                    } else {
-                        fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
-                    }
-                };
-                
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen()
-                        .then(startExperience)
-                        .catch(err => {
-                            console.warn(`Fullscreen request failed: ${err.message}. Starting without it.`);
-                            startExperience();
-                        });
-                } else {
-                    startExperience();
-                }
-
-            } else {
-                console.log("First tap detected. Awaiting second tap.");
-            }
             
+            if (timeSinceLastTap < 400 && timeSinceLastTap > 0) {
+                 logToScreen('--- DOUBLE TAP DETECTED ---');
+                 // In a real scenario, the experience would start here.
+            } else {
+                 logToScreen('First tap. Awaiting second.');
+            }
             lastTapTime = currentTime;
         });
 
     } else {
-        // --- Other Devices (Android, Desktop): Single-tap logic ---
         overlayText.textContent = 'ENTER';
+        logToScreen('Non-iOS or Desktop device detected.');
         DOM.unmuteOverlay.addEventListener('click', () => {
-            if (UTILS.isMobileLayout()) {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        console.warn(`Fullscreen request failed: ${err.message} (${err.name})`);
-                    });
-                }
-            }
-
-            DOM.unmuteOverlay.classList.add('hidden');
-            state.experienceHasStarted = true;
-            DOM.body.classList.add('experience-started');
-            startRevealAnimation();
-            
-            state.initialPlayTimeout = setTimeout(() => {
-                state.player.play().catch(e => console.error("Auto-play failed:", e));
-                fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
-                state.initialPlayTimeout = null;
-            }, CONFIG.INITIAL_PLAY_DELAY);
-        }, { once: true });
+            logToScreen('--- CLICK DETECTED ---');
+        });
     }
-    // --- END: CONDITIONAL ENTER LOGIC ---
-    // ==================================================
+    // =======================================================
 }
 
 document.addEventListener('DOMContentLoaded', main);
