@@ -91,6 +91,31 @@ const UTILS = {
     lerp: (start, end, amt) => (1 - amt) * start + amt * end,
 };
 
+/**
+ * BEST PRACTICE FIX: Manually creates greyscale pixel data from a source canvas.
+ * This avoids reliance on the buggy/unsupported `ctx.filter` on some browsers like iOS Safari.
+ * @param {CanvasRenderingContext2D} sourceCtx - The context of the canvas with the full-color image.
+ * @param {number} width - The width of the image data to process.
+ * @param {number} height - The height of the image data to process.
+ * @returns {ImageData} The new, greyscaled image data object.
+ */
+function createGreyscaleImageData(sourceCtx, width, height) {
+    const originalPixels = sourceCtx.getImageData(0, 0, width, height);
+    const d = originalPixels.data;
+    for (let i = 0; i < d.length; i += 4) {
+        // Use the "luminosity" formula for a visually pleasing greyscale conversion.
+        const r = d[i];
+        const g = d[i + 1];
+        const b = d[i + 2];
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        // Set the red, green, and blue values to the calculated grey value.
+        d[i] = d[i + 1] = d[i + 2] = gray;
+    }
+    return originalPixels;
+}
+
+
 // --- CORE APPLICATION LOGIC ---
 
 function initAudioPlayer() {
@@ -281,10 +306,17 @@ function sizeAndDrawInitial(slideElement, img) {
         drawY = (canvas.height - drawHeight) / 2;
     }
     
+    // Step 1: Draw the full-color image to the hidden "color" canvas.
     colorCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-    ctx.filter = 'grayscale(100%)';
-    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-    ctx.filter = 'none';
+    
+    // --- START: MODIFICATION FOR IOS FIX ---
+    // ADDED: The new, reliable manual method.
+    // Step 2: Manually create greyscale data from the color canvas.
+    const greyImageData = createGreyscaleImageData(colorCtx, canvas.width, canvas.height);
+    
+    // Step 3: Paint the new greyscale data onto the main, visible canvas.
+    ctx.putImageData(greyImageData, 0, 0);
+    // --- END: MODIFICATION FOR IOS FIX ---
 }
 
 
