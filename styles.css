@@ -278,7 +278,7 @@ input, textarea { cursor: text; }
   .bottom-sheet { 
     width: 100%; 
     max-width: 100%; 
-    height: 51vh;
+    height: 55vh;
     padding: 0.9375rem; /* 15px */
     left: 0; transform: none; 
     z-index: 1100; 
