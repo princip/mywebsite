@@ -45,26 +45,27 @@
 
   <div class="bottom-sheet" id="about-sheet" role="dialog" aria-modal="true" aria-labelledby="about-sheet-title">
     <div class="sheet-content">
-      <button class="sheet-close" aria-label="Close About panel">×</button>
       <h2 id="about-sheet-title">About Louis Papalouis</h2>
       <p>Hi, I'm Louis Papalouis, a composer based in London. I craft evocative contemporary classical music by uniting historical influences with distinct contemporary sounds. My compositions aim to resonate with emotional depth and modern sensibilities. I draw inspiration from the rich tapestry of history, inviting listeners into a world where the past and present harmonise in unexpected ways.</p>
     </div>
+    <!-- MODIFIED: Moved sheet-close button outside of the sheet-content div. -->
+    <button class="sheet-close" aria-label="Close About panel">×</button>
   </div>
 
   <div class="bottom-sheet" id="work-sheet" role="dialog" aria-modal="true" aria-labelledby="work-sheet-title">
     <div class="sheet-content">
-      <button class="sheet-close" aria-label="Close Work panel">×</button>
       <h2 id="work-sheet-title">Selected Works</h2>
       <p id="track-title-info">Now Playing: <span id="track-title"></span></p>
       <ul id="work-track-list">
         <!-- Tracks will be populated here by JavaScript -->
       </ul>
     </div>
+    <!-- MODIFIED: Moved sheet-close button outside of the sheet-content div. -->
+    <button class="sheet-close" aria-label="Close Work panel">×</button>
   </div>
 
   <div class="bottom-sheet" id="contact-sheet" role="dialog" aria-modal="true" aria-labelledby="contact-sheet-title">
     <div class="sheet-content">
-      <button class="sheet-close" aria-label="Close Contact panel">×</button>
       <h2 id="contact-sheet-title">Contact</h2>
       <form id="contact-form" novalidate>
         <!-- ACCESSIBILITY: Added <label> for each form field. The .sr-only class hides it visually. -->
@@ -81,6 +82,8 @@
         <button type="submit">Send</button>
       </form>
     </div>
+    <!-- MODIFIED: Moved sheet-close button outside of the sheet-content div. -->
+    <button class="sheet-close" aria-label="Close Contact panel">×</button>
   </div>
 
   <audio id="player" controls></audio>
