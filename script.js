@@ -664,6 +664,36 @@ function initEventListeners() {
     });
 }
 
+/**
+ * MODIFICATION: Handles virtual keyboard on mobile for contact form.
+ * Prevents the keyboard from covering input fields by resizing the panel
+ * via a CSS class and scrolling the focused input into view.
+ */
+function initKeyboardHandlers() {
+    // This functionality is only needed for touch-based mobile devices.
+    if (!UTILS.isTouchDevice() || !DOM.contactForm) return;
+
+    const inputs = DOM.contactForm.querySelectorAll('input, textarea');
+
+    inputs.forEach(input => {
+        input.addEventListener('focus', (e) => {
+            // Add a class to the body, allowing CSS to resize the panel.
+            DOM.body.classList.add('keyboard-active');
+
+            // After a short delay to allow the keyboard to animate in,
+            // scroll the focused element into the center of the view.
+            setTimeout(() => {
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        });
+
+        input.addEventListener('blur', () => {
+            // Clean up the class when the user is done editing.
+            DOM.body.classList.remove('keyboard-active');
+        });
+    });
+}
+
 function main() {
     initGallery();
     initAudioPlayer();
@@ -671,6 +701,7 @@ function main() {
     updateBubbleSize();
     populateWorkSheet();
     loadGlobalTrack(state.currentGlobalTrackIndex, false);
+    initKeyboardHandlers(); // Initialize keyboard handling logic.
     showSlide(state.currentVisualSlideIndex);
 
     DOM.unmuteOverlay.addEventListener('click', () => {
