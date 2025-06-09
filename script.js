@@ -12,7 +12,6 @@ const CONFIG = {
     SWIPE_CLOSE_THRESHOLD_Y: 75,
     MOBILE_BREAKPOINT: 768,
     AUDIO_FADE_IN_DURATION: 4140,
-    INITIAL_PLAY_DELAY: 3500, // Used for non-iOS devices
     INITIAL_VOLUME: 0.8,
     FORM_FEEDBACK_DURATION: 5000,
     FORM_VALIDATION_DURATION: 2500,
@@ -33,7 +32,6 @@ const state = {
     experienceHasStarted: false,
     isGreyscale: false, // Flag for visual-only reset state.
     volumeFadeInterval: null,
-    initialPlayTimeout: null,
     animationFrameId: null,
     canvasData: new Map(),
     mouseX: window.innerWidth / 2,
@@ -156,13 +154,6 @@ function initAudioPlayer() {
         }
     });
     player.on('ended', handleNextTrack);
-    player.on('play', () => {
-        if (state.initialPlayTimeout) {
-            clearTimeout(state.initialPlayTimeout);
-            state.initialPlayTimeout = null;
-            fadeVolumeIn(CONFIG.INITIAL_VOLUME, 1000);
-        }
-    });
 }
 
 function fadeVolumeIn(targetVolume, duration) {
@@ -506,64 +497,67 @@ function main() {
     loadGlobalTrack(state.currentGlobalTrackIndex, false);
     initKeyboardHandlers();
     showSlide(state.currentVisualSlideIndex);
+
+    // --- MODIFIED: Unified single-tap entry for all devices ---
     const overlayText = DOM.unmuteOverlay.querySelector('p');
-    if (UTILS.isIOS() && UTILS.isMobileLayout()) {
-        overlayText.textContent = 'DOUBLE TAP TO ENTER';
-        let lastTapTime = 0;
-        const doubleTapThreshold = 400;
-        DOM.unmuteOverlay.addEventListener('touchend', (event) => {
-            event.preventDefault();
-            if (state.experienceHasStarted) return;
-            const currentTime = new Date().getTime();
-            const timeSinceLastTap = currentTime - lastTapTime;
-            if (timeSinceLastTap < doubleTapThreshold && timeSinceLastTap > 0) {
-                const startExperience = () => {
-                    DOM.unmuteOverlay.classList.add('hidden');
-                    state.experienceHasStarted = true;
-                    DOM.body.classList.add('experience-started');
-                    startRevealAnimation();
-                    const playPromise = state.player.play();
-                    if (playPromise !== undefined) {
-                        playPromise.then(() => {
-                            fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
-                        }).catch(e => console.error("Auto-play failed after gesture:", e));
-                    } else {
-                        fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
-                    }
-                };
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen()
-                        .then(startExperience)
-                        .catch(err => {
-                            console.warn(`Fullscreen request failed: ${err.message}. Starting without it.`);
-                            startExperience();
-                        });
-                } else {
-                    startExperience();
-                }
-            }
-            lastTapTime = currentTime;
-        });
-    } else {
-        overlayText.textContent = 'ENTER';
-        DOM.unmuteOverlay.addEventListener('click', () => {
-            if (state.experienceHasStarted) return;
-            if (UTILS.isMobileLayout() && document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.warn(`Fullscreen request failed: ${err.message} (${err.name})`);
-                });
-            }
-            DOM.unmuteOverlay.classList.add('hidden');
-            state.experienceHasStarted = true;
-            DOM.body.classList.add('experience-started');
-            startRevealAnimation();
-            state.initialPlayTimeout = setTimeout(() => {
-                state.player.play().catch(e => console.error("Auto-play failed:", e));
+    overlayText.textContent = 'ENTER'; // Ensure consistent text
+
+    const startExperience = () => {
+        if (state.experienceHasStarted) return;
+        state.experienceHasStarted = true;
+
+        DOM.unmuteOverlay.classList.add('hidden');
+        DOM.body.classList.add('experience-started');
+        startRevealAnimation();
+
+        const playPromise = state.player.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
                 fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
-                state.initialPlayTimeout = null;
-            }, CONFIG.INITIAL_PLAY_DELAY);
-        }, { once: true });
-    }
+            }).catch(e => console.error("Auto-play failed after gesture:", e));
+        }
+    };
+
+    const handleUserInteraction = () => {
+        // Good practice: Resume audio context if suspended (especially for iOS)
+        if (state.player?.media?.tagName === 'AUDIO') {
+            const context = new(window.AudioContext || window.webkitAudioContext)();
+            if (context.state === 'suspended') {
+                context.resume();
+            }
+        }
+
+        // Request fullscreen on mobile layouts for a more immersive experience
+        if (UTILS.isMobileLayout()) {
+            const el = document.documentElement;
+            const requestFullscreen = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (requestFullscreen) {
+                requestFullscreen.call(el)
+                    .then(startExperience)
+                    .catch(err => {
+                        console.warn(`Fullscreen request failed: ${err.message}. Starting without it.`);
+                        startExperience(); // Start anyway if fullscreen fails or is denied
+                    });
+            } else {
+                startExperience(); // Fallback for browsers without fullscreen API
+            }
+        } else {
+            startExperience(); // Start directly on desktop
+        }
+    };
+
+    // Use a flag to ensure the handler runs only once, as `touchend` and `click` can both fire.
+    let interactionHandled = false;
+    const onceHandler = (event) => {
+        if (interactionHandled) return;
+        interactionHandled = true;
+        event.preventDefault(); // Prevents zoom on double-tap and stops `click` from firing after `touchend`
+        handleUserInteraction();
+    };
+    
+    // Listen for both events for maximum compatibility. The first one wins.
+    DOM.unmuteOverlay.addEventListener('touchend', onceHandler, { passive: false });
+    DOM.unmuteOverlay.addEventListener('click', onceHandler);
 }
 
 document.addEventListener('DOMContentLoaded', main);
