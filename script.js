@@ -316,9 +316,27 @@ function preloadNeighborSlides(currentIndex) { const offsets = [-2, -1, 1, 2]; c
 
 function handleNavButtonClick(direction) { const newIndex = (state.currentVisualSlideIndex + direction + state.slides.length) % state.slides.length; showSlide(newIndex); }
 
-function toggleSheet(sheetName) { const sheetElement = DOM.sheets[sheetName]; const isVisible = sheetElement.classList.contains('visible'); closeAllSheets(); if (!isVisible) { sheetElement.classList.add('visible'); state.activeSheet = sheetElement; sheetElement.querySelector('h2, li[tabindex="0"], input, textarea, button, .sheet-close')?.focus(); } }
+function toggleSheet(sheetName) {
+    const sheetElement = DOM.sheets[sheetName];
+    const isVisible = sheetElement.classList.contains('visible');
+    closeAllSheets(); // This will now remove the body class
+    if (!isVisible) {
+        // If we're opening a new sheet (not just closing one)
+        sheetElement.classList.add('visible');
+        DOM.body.classList.add('sheet-is-open'); // Add class to body
+        state.activeSheet = sheetElement;
+        sheetElement.querySelector('h2, li[tabindex="0"], input, textarea, button, .sheet-close')?.focus();
+    }
+}
 
-function closeAllSheets() { if (state.activeSheet === DOM.sheets.contact) { resetContactForm(); } Object.values(DOM.sheets).forEach(s => s.classList.remove('visible')); state.activeSheet = null; }
+function closeAllSheets() {
+    if (state.activeSheet === DOM.sheets.contact) {
+        resetContactForm();
+    }
+    Object.values(DOM.sheets).forEach(s => s.classList.remove('visible'));
+    DOM.body.classList.remove('sheet-is-open'); // Remove class from body
+    state.activeSheet = null;
+}
 
 function setContactFormState(formState) {
     const submitButton = DOM.contactForm.querySelector('button[type="submit"]'); const feedbackEl = DOM.contactForm.querySelector('.form-feedback');
