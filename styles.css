@@ -122,16 +122,21 @@ input, textarea { cursor: text; }
   font-weight: 500;
   opacity: 0;
   animation: fadeIn 0.5s ease-out 1s forwards;
-  transition: background 0.3s, color 0.3s, transform 0.2s ease-out;
+  transition: background 0.3s, color 0.3s, transform 0.2s ease-out, opacity 0.3s ease-out;
   z-index: 100;
 }
-.nav-button:hover {
-  background: var(--interactive-bg-hover);
-  transform: translateY(-50%) scale(1.1);
+
+/* MODIFIED: Wrapped hover in a media query to prevent "sticky hover" on touch devices. */
+@media (hover: hover) {
+  .nav-button:hover {
+    background: var(--interactive-bg-hover);
+    transform: translateY(-50%) scale(1.1);
+  }
 }
+
 .nav-button:active {
-  background: var(--text-color);
-  color: var(--bg-color);
+  background: var(--interactive-bg-hover);
+  color: var(--text-color);
   transform: translateY(-50%) scale(0.95);
 }
 @keyframes fadeIn { to { opacity: 1; } }
@@ -143,10 +148,30 @@ input, textarea { cursor: text; }
     padding: 0.9375rem; /* 15px */ 
     bottom: 12%; 
     top: auto; 
-    animation: fadeIn 0.5s ease-out 0.5s forwards; 
+    animation: fadeIn 0.4s ease-out forwards; 
+
+    /* CORRECTED: Center arrow character and fix mobile positioning. */
+    transform: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
   }
+
+  /* CORRECTED: Override active state transform for mobile to match new positioning. */
+  .nav-button:active {
+    transform: scale(0.95);
+  }
+
   #prev { left: 1.25rem; /* 20px */ }
   #next { right: 1.25rem; /* 20px */ }
+
+  /* CORRECTED: Hide nav buttons when a sheet is open on mobile */
+  body.sheet-is-open .nav-button {
+    opacity: 0;
+    pointer-events: none;
+    animation: none; /* Override the fadeIn animation to allow opacity to be controlled */
+  }
 }
 
 .side-buttons {
@@ -200,9 +225,10 @@ input, textarea { cursor: text; }
   transform: scale(1.05);
   box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.3);
 }
+/* MODIFIED: Changed active state to use hover color instead of inverting. */
 .menu-button:active {
-  background: var(--text-color);
-  color: var(--bg-color);
+  background: var(--interactive-bg-hover);
+  color: var(--text-color);
   transform: scale(0.98);
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
 }
@@ -251,8 +277,9 @@ input, textarea { cursor: text; }
 .plyr--audio .plyr__progress__buffer { background: rgba(var(--text-color-rgb), 0.3); }
 .plyr--audio .plyr__volume--display { background: var(--plyr-color-main); }
 .plyr--audio .plyr__progress--played, .plyr--audio .plyr__volume--value { background: var(--plyr-color-main); }
-.plyr--audio .plyr__control:hover, .plyr--audio .plyr__control[aria-expanded="true"] { background: var(--plyr-color-main); color: var(--bg-color); }
-.plyr--audio .plyr__control:hover svg, .plyr--audio .plyr__control[aria-expanded="true"] svg { color: var(--bg-color); }
+/* MODIFIED: Changed hover state to use a darker shade (matching form button hover) instead of inverting colors. */
+.plyr--audio .plyr__control:hover, .plyr--audio .plyr__control[aria-expanded="true"] { background: rgba(0, 0, 0, 0.3); color: var(--text-color); }
+.plyr--audio .plyr__control:hover svg, .plyr--audio .plyr__control[aria-expanded="true"] svg { color: var(--text-color); }
 @media (max-width: 768px) {
   .plyr { 
     width: 90%; 
@@ -354,21 +381,42 @@ input, textarea { cursor: text; }
 .sheet-close:hover { color: white; opacity: 0.8; }
 @media (max-width: 768px) {
   .sheet-close { 
-    top: auto; 
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 2rem; /* 32px - tappable area */
-    font-size: 0; /* Hide the '×' text */
-    background: rgba(0,0,0,0.2);
+    /* MODIFIED: Reposition from bottom bar to top-right corner, like desktop */
+    top: 0.625rem; /* 10px */
+    right: 0.625rem; /* 10px */
+    bottom: auto;
+    left: auto;
+    width: 2.5rem;  /* 40px, better touch target */
+    height: 2.5rem; /* 40px, better touch target */
+    font-size: 0; /* Hide the original '×' text */
+    background: transparent; /* Remove bottom bar background */
   }
+
+  .sheet-close:hover {
+    /* MODIFIED: Override base hover style for mobile to remove opacity change */
+    opacity: 1;
+  }
+  
   .sheet-close::before {
+    /* MODIFIED: Replace the horizontal handle with a down-arrow icon */
     content: '';
-    width: 2.5rem; /* 40px */
-    height: 0.1875rem; /* 3px */
-    background-color: rgba(var(--text-color-rgb), 0.4);
-    border-radius: 0.125rem; /* 2px */
+    /* Reset properties from old ::before rule to be safe */
+    width: auto;
+    height: auto;
+    background-color: transparent;
+    border-radius: 0;
+    /* Create the arrow shape using borders */
+    border: solid rgba(var(--text-color-rgb), 0.7);
+    border-width: 0 2px 2px 0; /* Creates the > shape */
+    display: inline-block;
+    padding: 5px; /* Controls the size of the arrow */
+    transform: rotate(45deg); /* Points the arrow down */
+    transition: border-color 0.2s ease;
+  }
+
+  .sheet-close:hover::before {
+    /* MODIFIED: Make arrow fully opaque on hover */
+    border-color: var(--text-color);
   }
 }
 
@@ -458,7 +506,7 @@ input, textarea { cursor: text; }
   height: 100%;
   overflow-y: auto; 
   /* MODIFIED: Padding adjusted to use the unified value from .sheet-content */
-  padding-top: 0.625rem;
+  /* MODIFIED: Removed redundant padding-top which was causing mobile alignment issues. */
   padding-bottom: 2.5rem;
   overflow: hidden;
 }
@@ -487,7 +535,7 @@ input, textarea { cursor: text; }
 #contact-sheet textarea {
   min-height: 2.25rem; /* 36px */
   resize: none;
-  padding-top: 0.75rem; /* Custom padding to vertically center placeholder text. */
+  /* MODIFIED: Removed custom padding-top. The textarea now inherits padding from the shared rule above, ensuring its text aligns with other fields. */
 }
 
 #contact-sheet button[type="submit"] {
