@@ -156,11 +156,8 @@ function initAudioPlayer() {
     player.on('ended', handleNextTrack);
 }
 
-// --- MODIFIED: Removed the `player.volume = 0` line. ---
-// This function now only handles the fade interval.
 function fadeVolumeIn(targetVolume, duration) {
     if (state.volumeFadeInterval) clearInterval(state.volumeFadeInterval);
-    // The starting volume is now set by the calling function.
 
     const steps = 50;
     const intervalTime = duration / steps;
@@ -328,11 +325,14 @@ function setContactFormState(formState) {
     submitButton.disabled = false; submitButton.classList.remove('feedback-active'); feedbackEl.classList.remove('visible', 'success', 'error');
     if (state.contactFormTimeoutId) { clearTimeout(state.contactFormTimeoutId); }
     switch (formState) {
-        case 'sending': submitButton.disabled = true; submitButton.textContent = 'Sending...'; break;
-        case 'success': submitButton.disabled = true; submitButton.classList.add('feedback-active'); submitButton.textContent = 'Thank you! Your message has been sent.'; state.contactFormTimeoutId = setTimeout(() => setContactFormState('idle'), CONFIG.FORM_FEEDBACK_DURATION); break;
-        case 'validationError': submitButton.disabled = true; submitButton.classList.add('feedback-active'); submitButton.textContent = "Oops! looks like some info’s missing."; state.contactFormTimeoutId = setTimeout(() => setContactFormState('idle'), CONFIG.FORM_VALIDATION_DURATION); break;
+        case 'sending': submitButton.disabled = true; submitButton.textContent = 'sending...'; break;
+        // MODIFIED: Text content is now lowercase
+        case 'success': submitButton.disabled = true; submitButton.classList.add('feedback-active'); submitButton.textContent = 'thank you! your message has been sent.'; state.contactFormTimeoutId = setTimeout(() => setContactFormState('idle'), CONFIG.FORM_FEEDBACK_DURATION); break;
+        // MODIFIED: Text content is now lowercase
+        case 'validationError': submitButton.disabled = true; submitButton.classList.add('feedback-active'); submitButton.textContent = "oops! looks like some info's missing."; state.contactFormTimeoutId = setTimeout(() => setContactFormState('idle'), CONFIG.FORM_VALIDATION_DURATION); break;
         case 'serverError': feedbackEl.textContent = 'Sorry, an error occurred. Please try again.'; feedbackEl.classList.add('error', 'visible'); setContactFormState('idle'); break;
-        case 'idle': default: submitButton.disabled = false; submitButton.textContent = 'Send'; break;
+        // MODIFIED: Text content is now lowercase
+        case 'idle': default: submitButton.disabled = false; submitButton.textContent = 'send'; break;
     }
 }
 
@@ -497,7 +497,6 @@ function main() {
     const overlayText = DOM.unmuteOverlay.querySelector('p');
     overlayText.textContent = 'ENTER';
 
-    // --- MODIFIED: Reworked logic for robust, silent start on all devices ---
     const startExperience = () => {
         if (state.experienceHasStarted) return;
         state.experienceHasStarted = true;
@@ -506,18 +505,9 @@ function main() {
         DOM.body.classList.add('experience-started');
         startRevealAnimation();
 
-        // --- THE FIX ---
-        // 1. Set volume to 0 BEFORE playing. This is the crucial step
-        //    for iOS to prevent the initial loud blip.
         state.player.volume = 0;
-
-        // 2. Start playback. The user will hear nothing at this point.
         const playPromise = state.player.play();
-
-        // 3. Immediately start the fade-in process. We don't wait for the promise.
         fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
-
-        // 4. Handle any potential errors from the play promise without blocking the fade.
         if (playPromise !== undefined) {
             playPromise.catch(e => console.error("Auto-play failed after gesture:", e));
         }
