@@ -1,11 +1,23 @@
 :root {
-  --plyr-color-main: #48616b;
-  --interactive-bg: rgba(72, 97, 107, 0.7);
-  --interactive-bg-hover: rgba(72, 97, 107, 0.85);
-  --interactive-bg-active: rgba(72, 97, 107, 0.9);
-  --text-color: white;
-  --focus-outline-color: #72b3d0;
-  --error-bg: #c62828;
+  /* MODIFIED: New Font System */
+  --display-font: 'Syne', sans-serif;
+  --body-font: 'Satoshi', sans-serif;
+  --mono-font: 'Space Mono', monospace;
+
+  /* MODIFIED: "Smoked Glass" (Monochromatic) Color Scheme */
+  --bg-color: #18171A;
+  --text-color: #F0EFEF;
+  --text-color-rgb: 240, 239, 239;
+  
+  --error-bg: #8C3A4B;
+  --focus-outline-color: var(--text-color);
+  
+  --sheet-bg: rgba(40, 38, 42, 0.9);
+  --interactive-bg: rgba(40, 38, 42, 0.7);
+  --interactive-bg-hover: rgba(40, 38, 42, 0.9); /* More opaque on hover */
+  
+  /* Plyr variable override for the monochromatic theme */
+  --plyr-color-main: var(--text-color);
 }
 
 html, body {
@@ -13,22 +25,18 @@ html, body {
   padding: 0;
   height: 100%;
   overflow: hidden;
-  /* BEST PRACTICE: Using 100% allows rem units to be based on the user's browser setting (typically 16px) */
   font-size: 100%; 
-  background-color: #1a1a1a;
-  font-family: 'Montserrat', sans-serif;
-  
-  /* --- FIX ADDED HERE --- */
-  /* Prevents pull-to-refresh on mobile and overscroll glow/bounce on desktop. */
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--body-font);
+  font-weight: 400;
   overscroll-behavior-y: contain;
 }
 
-/* REFACTORED: The 'cursor: none' is now applied only when the experience starts via JS. */
 body.experience-started {
   cursor: none;
 }
 
-/* A utility class for visually hiding elements for screen readers. */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -53,7 +61,7 @@ body.experience-started {
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  color: white;
+  color: var(--text-color);
   text-align: center;
   cursor: pointer;
   opacity: 1;
@@ -64,7 +72,8 @@ body.experience-started {
   pointer-events: none;
 }
 #unmute-overlay p {
-  font-weight: 300;
+  font-family: var(--display-font);
+  font-weight: 700;
   letter-spacing: 0.125rem; /* 2px */
   font-size: 2.125rem; /* 34px */
   padding: 0 1.25rem; /* 20px */
@@ -78,7 +87,7 @@ body.experience-started {
 #color-revealer {
   position: fixed;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(var(--text-color-rgb), 0.4);
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 9998;
@@ -96,9 +105,7 @@ body.experience-started #color-revealer {
 .slide.current-slide { opacity: 1; visibility: visible; z-index: 1; }
 .background-canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: -1; }
 
-/* REFACTORED: Removed '!important' as it's no longer necessary. Normal specificity rules apply. */
 .menu-button, .nav-button, .sheet-close, .plyr, #work-track-list li, button[type="submit"] { cursor: pointer; }
-#work-track-list li[aria-current="true"] { cursor: default; }
 input, textarea { cursor: text; }
 
 /* === BUTTONS & NAVIGATION === */
@@ -111,11 +118,11 @@ input, textarea { cursor: text; }
   border: none;
   padding: 0.9375rem; /* 15px */
   font-size: 1.5rem; /* 24px */
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 600;
+  font-family: var(--body-font);
+  font-weight: 500;
   opacity: 0;
   animation: fadeIn 0.5s ease-out 1s forwards;
-  transition: background 0.3s, transform 0.2s ease-out;
+  transition: background 0.3s, color 0.3s, transform 0.2s ease-out;
   z-index: 100;
 }
 .nav-button:hover {
@@ -123,13 +130,13 @@ input, textarea { cursor: text; }
   transform: translateY(-50%) scale(1.1);
 }
 .nav-button:active {
-  background: var(--interactive-bg-active);
+  background: var(--text-color);
+  color: var(--bg-color);
   transform: translateY(-50%) scale(0.95);
 }
 @keyframes fadeIn { to { opacity: 1; } }
 #prev { left: 1.25rem; /* 20px */ }
 #next { right: 1.25rem; /* 20px */ }
-/* BEST PRACTICE: Co-located media query for this component. */
 @media (max-width: 768px) {
   .nav-button { 
     font-size: 2.25rem; /* 36px */ 
@@ -142,7 +149,6 @@ input, textarea { cursor: text; }
   #next { right: 1.25rem; /* 20px */ }
 }
 
-
 .side-buttons {
   position: fixed;
   left: 1.25rem; /* 20px */
@@ -152,16 +158,18 @@ input, textarea { cursor: text; }
   gap: 0.9375rem; /* 15px */
   z-index: 100;
 }
-/* BEST PRACTICE: Co-located media query for this component. */
 @media (max-width: 768px) {
   .side-buttons {
     width: 100%; 
     flex-direction: row; 
-    flex-wrap: nowrap; 
+    /* MODIFIED: Changed from 'nowrap' to 'wrap'. This allows buttons to flow onto a new line on very narrow screens or high zoom levels, preventing overlap. */
+    flex-wrap: wrap; 
+    /* ADDED: Centers the buttons horizontally. This provides a clean, balanced look when buttons wrap to a second line. */
+    justify-content: center;
     gap: 0.125rem; /* 2px */
     top: 0; left: 0; 
     padding: 0.5rem 0.125rem; /* 8px 2px */
-    background: rgba(72, 97, 107, 0.8); 
+    background: rgba(40, 38, 42, 0.8); 
     z-index: 1000;
   }
 }
@@ -171,17 +179,18 @@ input, textarea { cursor: text; }
   color: var(--text-color);
   border: none;
   padding: 0.9375rem 1.5625rem; /* 15px 25px */
-  font-size: 1rem; /* 16px */
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.0625rem; /* 1px */
   border-radius: 0.25rem; /* 4px */
-  transition: background 0.3s, transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  transition: background 0.3s, color 0.3s, transform 0.2s ease-out, box-shadow 0.2s ease-out;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2); /* 2px 4px */
   opacity: 0;
   transform: translateX(-1.25rem); /* -20px */
   animation: slideIn 0.5s ease-out forwards;
+  
+  font-family: var(--body-font);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  font-size: 0.85rem;
 }
 @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
 .menu-button:nth-child(1) { animation-delay: 0.2s; }
@@ -191,23 +200,26 @@ input, textarea { cursor: text; }
 .menu-button:hover {
   background: var(--interactive-bg-hover);
   transform: scale(1.05);
-  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.3); /* 4px 8px */
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.3);
 }
 .menu-button:active {
-  background: var(--interactive-bg-active);
+  background: var(--text-color);
+  color: var(--bg-color);
   transform: scale(0.98);
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
 }
-/* BEST PRACTICE: Co-located media query for this component. */
 @media (max-width: 768px) {
   .menu-button {
-    flex: 1 1 0; 
-    padding: 0.625rem 0.3125rem; /* 10px 5px */
+    /* MODIFIED: Changed flex from '1 1 0' to '0 1 auto'.
+       This prevents buttons from stretching to fill the full screen width when they wrap.
+       Instead, they will maintain a natural width based on their content, creating a much cleaner look. */
+    flex: 0 1 auto; 
+    padding: 0.625rem 0.3125rem;
     text-align: center;
     white-space: nowrap; 
     overflow: hidden; 
     text-overflow: ellipsis; 
-    font-size: clamp(0.6875rem, 3.5vw, 0.875rem); /* 11px, 14px */
+    font-size: clamp(0.7rem, 3.5vw, 0.85rem);
     transform: none; 
     animation: none; 
     opacity: 1;
@@ -215,7 +227,7 @@ input, textarea { cursor: text; }
     box-shadow: none;
   }
   .menu-button:hover { 
-    background: rgba(255,255,255,0.1); 
+    background: rgba(var(--text-color-rgb), 0.1); 
     transform: none; 
     box-shadow: none; 
   }
@@ -232,19 +244,20 @@ input, textarea { cursor: text; }
   border-radius: 0.5rem; /* 8px */
   color: var(--text-color);
   z-index: 100;
+  font-family: var(--mono-font);
 }
 .plyr--audio .plyr__controls { background: transparent; }
 
-/* ADDED: Ensure all parts of the controls have a consistent pointer cursor */
 .plyr--audio .plyr__controls, .plyr--audio .plyr__controls * {
   cursor: pointer;
 }
 
 .plyr--audio .plyr__control svg { color: var(--text-color); }
-.plyr--audio .plyr__progress__buffer, .plyr--audio .plyr__volume--display { background: var(--plyr-color-main); }
+.plyr--audio .plyr__progress__buffer { background: rgba(var(--text-color-rgb), 0.3); }
+.plyr--audio .plyr__volume--display { background: var(--plyr-color-main); }
 .plyr--audio .plyr__progress--played, .plyr--audio .plyr__volume--value { background: var(--plyr-color-main); }
-.plyr--audio .plyr__control:hover, .plyr--audio .plyr__control[aria-expanded="true"] { background: var(--plyr-color-main); color: var(--text-color); }
-/* BEST PRACTICE: Co-located media query for this component. */
+.plyr--audio .plyr__control:hover, .plyr--audio .plyr__control[aria-expanded="true"] { background: var(--plyr-color-main); color: var(--bg-color); }
+.plyr--audio .plyr__control:hover svg, .plyr--audio .plyr__control[aria-expanded="true"] svg { color: var(--bg-color); }
 @media (max-width: 768px) {
   .plyr { 
     width: 90%; 
@@ -255,21 +268,10 @@ input, textarea { cursor: text; }
   }
 }
 
-/* 
- * MODIFIED: Prioritize Volume on Very Small Screens.
- * On screens narrower than 380px, this constrains the width of the 
- * progress bar, preventing it from growing and ensuring the volume 
- * control remains fully usable.
-*/
 @media (max-width: 380px) {
   .plyr--audio .plyr__progress__container {
-    /* 
-     * flex-grow: 0 (Don't grow to fill space)
-     * flex-shrink: 1 (Allow shrinking if needed)
-     * flex-basis: 70px (Attempt to be 70px wide)
-    */
     flex: 0 1 70px;
-    min-width: 50px; /* Ensure it doesn't collapse entirely */
+    min-width: 50px;
   }
 }
 
@@ -279,7 +281,7 @@ input, textarea { cursor: text; }
   bottom: -100%; 
   left: 50%; 
   transform: translateX(-50%); 
-  background: var(--interactive-bg-hover); 
+  background: var(--sheet-bg); 
   color: var(--text-color); 
   padding: 1.875rem; /* 30px */
   transition: bottom 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
@@ -295,7 +297,6 @@ input, textarea { cursor: text; }
   flex-direction: column; 
 }
 .bottom-sheet.visible { bottom: 0; }
-/* BEST PRACTICE: Co-located media query for this component. */
 @media (max-width: 768px) {
   .bottom-sheet { 
     width: 100%; 
@@ -304,7 +305,7 @@ input, textarea { cursor: text; }
     padding: 0.9375rem; /* 15px */
     left: 0; transform: none; 
     z-index: 1100; 
-    background: rgba(72, 97, 107, 0.95); 
+    background: var(--sheet-bg); 
     border-radius: 0;
     transition: bottom 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), height 0.3s ease-in-out; 
   }
@@ -317,16 +318,23 @@ input, textarea { cursor: text; }
   padding: 0.625rem 0 1.25rem 0; /* 10px 20px */
   height: 100%;
 }
-.sheet-content h2 { margin-top: 0; margin-bottom: 1.25rem; /* 20px */ font-weight: 400; font-size: 1.5rem; /* 24px */ }
-.sheet-content p { line-height: 1.6; font-weight: 300; margin-bottom: 0.9375rem; /* 15px */ }
-/* BEST PRACTICE: Co-located media query for this component. */
+.sheet-content h2 {
+  margin-top: 0; 
+  margin-bottom: 1.25rem; /* 20px */ 
+  font-family: var(--display-font);
+  font-weight: 700;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  text-transform: lowercase;
+}
+.sheet-content p { line-height: 1.7; font-weight: 300; margin-bottom: 0.9375rem; /* 15px */ }
 @media (max-width: 768px) {
   .sheet-content { 
     padding: 0.3125rem; 
-    /* MODIFIED: Adjusted bottom padding to accommodate the new smaller close bar. */
     padding-bottom: 2.5rem; /* 40px */
   }
-  .sheet-content h2 { font-size: 1.375rem; /* 22px */ margin-bottom: 0.9375rem; /* 15px */ }
+  .sheet-content h2 { margin-bottom: 0.9375rem; /* 15px */ }
   .sheet-content p, .sheet-content li { font-size: 1rem; /* 16px */ }
 }
 
@@ -345,10 +353,9 @@ input, textarea { cursor: text; }
   justify-content: center; 
   z-index: 1001; 
   padding: 0;
+  transition: color 0.2s;
 }
-.sheet-close:hover { color: #ccc; }
-/* BEST PRACTICE: Co-located media query for this component. */
-/* MODIFICATION: Redesigned close button for mobile to be a thin, elegant 'drag bar'. */
+.sheet-close:hover { color: white; opacity: 0.8; }
 @media (max-width: 768px) {
   .sheet-close { 
     top: auto; 
@@ -356,46 +363,88 @@ input, textarea { cursor: text; }
     left: 0;
     right: 0;
     width: 100%;
-    /* MODIFIED: Reduced height to make the button more discreet. */
     height: 2rem; /* 32px - tappable area */
     font-size: 0; /* Hide the '×' text */
     background: rgba(0,0,0,0.2);
   }
-  /* Create a thin line inside the button to act as a visual drag handle */
   .sheet-close::before {
     content: '';
     width: 2.5rem; /* 40px */
     height: 0.1875rem; /* 3px */
-    background-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(var(--text-color-rgb), 0.4);
     border-radius: 0.125rem; /* 2px */
   }
 }
 
-.sheet-content::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 0; height: 1px; background-color: var(--text-color); opacity: 0; transition: opacity 0.3s, width 0.3s; }
-.bottom-sheet:not(#contact-sheet):hover .sheet-content::after { opacity: 1; width: 100%; }
-/* MODIFICATION: Hide the animated line on mobile as it's a hover-only effect. */
+/* === ADDED: Animated hover line for sheets from V1 === */
+.sheet-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 1px;
+  background-color: var(--text-color);
+  opacity: 0;
+  transition: opacity 0.3s, width 0.3s;
+}
+
+.bottom-sheet:hover .sheet-content::after {
+  opacity: 1;
+  width: 100%;
+}
+
+/* Specific position for contact sheet to avoid overlapping form elements */
+#contact-sheet .sheet-content::after {
+  bottom: 0.9375rem; /* 15px */
+}
+
 @media (max-width: 768px) {
+  /* Hides the line on mobile, matching V1's behavior */
   .sheet-content::after {
     display: none;
   }
 }
-
+/* === END of added code === */
 
 /* === WORK SHEET SPECIFIC STYLES === */
 #work-sheet .sheet-content { display: flex; flex-direction: column; overflow-y: hidden; }
 #work-sheet .sheet-content h2 { margin-bottom: 0.25rem; /* 4px */ }
-#track-title-info { font-weight: 400; margin-bottom: 0.75rem; /* 12px */ }
-#track-title { font-style: italic; }
+#track-title-info { 
+  font-weight: 400; 
+  margin-bottom: 0.75rem; /* 12px */
+  text-transform: lowercase; /* ADDED */
+}
+#track-title { 
+  font-style: italic; 
+  font-family: var(--mono-font);
+}
 #work-track-list { 
   list-style: none; padding: 0; margin: 0; flex-grow: 1; 
   overflow-y: auto; min-height: 0; 
 }
-#work-track-list li { padding: 0.625rem 0.9375rem; margin: 0; letter-spacing: 0.03125rem; /* 0.5px */ border-bottom: 1px solid rgba(255, 255, 255, 0.1); transition: background-color 0.2s ease; font-weight: 300; }
+#work-track-list li { 
+  padding: 0.625rem 0.9375rem; 
+  margin: 0; 
+  border-bottom: 1px solid rgba(var(--text-color-rgb), 0.1); 
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: var(--mono-font);
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  text-transform: lowercase; /* ADDED */
+}
 #work-track-list li:last-child { border-bottom: none; }
-#work-track-list li:hover:not(.current-track-item) { background-color: rgba(255, 255, 255, 0.08); }
-#work-track-list li.current-track-item { background-color: var(--plyr-color-main); color: var(--text-color); font-weight: 400; }
-#work-track-list li.current-track-item:hover { background-color: var(--plyr-color-main); }
-/* BEST PRACTICE: Co-located media query for this component. */
+#work-track-list li:hover:not(.current-track-item) { background-color: rgba(0, 0, 0, 0.2); }
+
+#work-track-list li.current-track-item,
+#work-track-list li.current-track-item:hover {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: var(--text-color);
+  font-weight: 700;
+  cursor: default;
+}
+
 @media (max-width: 768px) {
   #track-title-info { font-size: 1rem; /* 16px */ }
   #work-track-list li { padding: 0.75rem 0.625rem; /* 12px 10px */ }
@@ -406,39 +455,78 @@ input, textarea { cursor: text; }
   display: grid; 
   grid-template-rows: auto 1fr; 
   height: 100%;
-  /* MODIFICATION: Changed from 'hidden' to allow scrolling when keyboard is active */
   overflow-y: auto; 
   padding: 0.625rem 0 2.5rem 0; /* 10px 40px */
   overflow: hidden;
 }
-#contact-sheet h2 { margin: 0 0 0.75rem 0; /* 12px */ }
+/* MODIFIED: Increased bottom margin for consistency with other panels. */
+#contact-sheet h2 { margin: 0 0 1.25rem 0; /* 20px */ }
 #contact-sheet form { 
-  display: grid; grid-template-rows: auto auto 1fr auto; 
+  display: grid; 
+  /* MODIFIED: Reduced gap to save space. */
   gap: 0.3125rem; /* 5px */
-  min-height: 0; padding-bottom: 1.5625rem; /* 25px */
+  align-content: start;
+  min-height: 0; 
+  /* MODIFIED: Changed from padding-bottom to padding to add horizontal space, preventing the focus outline from being clipped. */
+  padding: 0 0.25rem 1.5625rem;
   box-sizing: border-box;
 }
-#contact-sheet input, #contact-sheet textarea { padding: 0.5rem 0.625rem; border: 1px solid rgba(72, 97, 107, 0.5); background: rgba(0, 0, 0, 0.2); color: var(--text-color); border-radius: 0.25rem; font-family: 'Montserrat', sans-serif; font-weight: 300; }
+#contact-sheet input, #contact-sheet textarea { 
+  padding: 0.5rem 0.625rem;
+  border: 1px solid rgba(var(--text-color-rgb), 0.2);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-color);
+  border-radius: 0.25rem;
+  font-family: var(--mono-font);
+  /* MODIFIED: Explicitly set font properties for visual consistency. */
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
 #contact-sheet input { min-height: 2.25rem; /* 36px */ }
-#contact-sheet textarea { min-height: 3.75rem; /* 60px */ resize: none; }
-#contact-sheet button[type="submit"] {
+/* MODIFIED: Set min-height and adjust padding for vertical alignment. */
+#contact-sheet textarea {
   min-height: 2.25rem; /* 36px */
-  padding: 0.5rem 0.75rem; /* 8px 12px */
-  background: var(--interactive-bg); color: var(--text-color); border: none;
-  border-radius: 0.25rem; font-family: 'Montserrat', sans-serif;
-  font-weight: 400; text-transform: uppercase;
-  transition: background 0.3s, color 0.3s;
-  white-space: normal; line-height: 1.3;
+  resize: none;
+  padding-top: 0.75rem; /* Custom padding to vertically center placeholder text. */
+}
+
+#contact-sheet button[type="submit"] {
+  min-height: 2.25rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-color);
+  border: 1px solid rgba(var(--text-color-rgb), 0.2);
+  border-radius: 0.25rem;
+  font-family: var(--body-font);
+  font-weight: 700;
+  text-transform: lowercase; /* MODIFIED */
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  white-space: normal;
+  line-height: 1.3;
+}
+#contact-sheet button[type="submit"]:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-color: rgba(var(--text-color-rgb), 0.3);
+}
+#contact-sheet button[type="submit"]:active:not(:disabled) {
+  background-color: var(--text-color);
+  color: var(--bg-color);
+  border-color: var(--text-color);
 }
 #contact-sheet button[type="submit"].feedback-active {
-  background: var(--plyr-color-main);
-  text-transform: none; font-weight: 300; cursor: default;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-color);
+  border-color: rgba(var(--text-color-rgb), 0.2);
+  text-transform: none; /* Let the JS handle the text content */
+  font-weight: 300; 
+  cursor: default;
 }
-#contact-sheet button[type="submit"]:hover:not(:disabled) { background: var(--interactive-bg-hover); }
-#contact-sheet input::placeholder, #contact-sheet textarea::placeholder { color: rgba(255, 255, 255, 0.7); }
 
-#contact-sheet .sheet-content::after { bottom: 0.9375rem; z-index: 1; /* 15px */ }
-#contact-sheet:hover .sheet-content::after { opacity: 1; width: 100%; }
+#contact-sheet input::placeholder, #contact-sheet textarea::placeholder { 
+  color: rgba(var(--text-color-rgb), 0.7);
+  text-transform: lowercase; /* ADDED */
+}
 
 .form-feedback {
   padding: 0.75rem 0.9375rem; /* 12px 15px */
@@ -450,41 +538,39 @@ input, textarea { cursor: text; }
   transition: all 0.3s ease;
 }
 .form-feedback.visible { opacity: 1; transform: translateY(0); max-height: 6.25rem; /* 100px */ }
-.form-feedback.success { background-color: var(--plyr-color-main); color: white; }
+.form-feedback.success { background-color: var(--text-color); color: var(--bg-color); }
 .form-feedback.error { background-color: var(--error-bg); color: white; }
-/* BEST PRACTICE: Co-located media query for this component. */
 @media (max-width: 768px) {
   #contact-sheet .sheet-content { 
     padding: 0.3125rem; 
-    /* MODIFIED: Removed redundant padding declaration. It now inherits from the general .sheet-content rule. */
   }
   #contact-sheet h2 { margin-bottom: 0.625rem; /* 10px */ }
   #contact-sheet form { gap: 0.375rem; /* 6px */ }
   #contact-sheet input, #contact-sheet button[type="submit"] { min-height: 2.8125rem; font-size: 1rem; /* 45px 16px */ }
   #contact-sheet textarea { min-height: 3.75rem; font-size: 1rem; /* 60px 16px */ }
-  #contact-sheet .sheet-content::after { bottom: 1.5625rem; /* 25px */ }
-  #contact-sheet:hover .sheet-content::after { width: calc(100% - 1.875rem); /* 30px */ }
 }
 
-/* MODIFICATION: Styles to handle the on-screen keyboard for the contact form. */
 body.keyboard-active {
-  /* When keyboard is active, make the contact sheet take up the full visible area. */
   & #contact-sheet.visible {
     height: 100%; /* Fallback for older browsers */
     height: 100vh; /* Will resize to the new visible viewport height */
   }
-  /* Ensure the form content itself can scroll if it still overflows */
   & #contact-sheet.visible .sheet-content {
     overflow-y: auto;
   }
 }
 
-
 /* === ACCESSIBILITY FOCUS STYLES === */
+/* MODIFIED: Replaced the default focus style with a more subtle, single thin outline for a cleaner look. */
 :is(button, input, textarea, [tabindex="0"]):focus-visible {
-  outline: 2px solid var(--focus-outline-color);
+  outline: 1px solid var(--focus-outline-color);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(114, 179, 208, 0.3);
+  box-shadow: none;
+}
+
+/* ADDED: Custom, even more subtle focus color for contact form fields, matching the button hover border color. */
+#contact-sheet :is(input, textarea):focus-visible {
+  outline-color: rgba(var(--text-color-rgb), 0.3);
 }
 
 .plyr--focused, .plyr__control--forward:focus-visible,
