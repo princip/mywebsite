@@ -5,10 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Louis | Composer</title>
   
+  <!-- === FAVICONS, THEME & MANIFEST (BEST PRACTICES) === -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#18171A">
+  <!-- ==================================================== -->
+  
   <!-- Fonts & Stylesheets -->
+  <!-- MODIFIED: Replaced Montserrat with Satoshi and Inter fonts. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <link rel="stylesheet" href="styles.css">
 
@@ -22,7 +33,6 @@
   <h1 class="sr-only">Louis Papalouis | Composer</h1>
 
   <div id="unmute-overlay">
-    <!-- MODIFIED: Removed obsolete comment. The text is always "ENTER". -->
     <p>ENTER</p>
   </div>
 
@@ -37,10 +47,11 @@
   </main>
 
   <div class="side-buttons">
-    <button class="menu-button" id="about-btn">ABOUT</button>
-    <button class="menu-button" id="work-btn">WORK</button>
-    <button class="menu-button" id="contact-btn">CONTACT</button>
-    <button class="menu-button" id="reset-btn">RESET</button>
+    <!-- MODIFIED: Button text is now in lowercase. -->
+    <button class="menu-button" id="about-btn">about</button>
+    <button class="menu-button" id="work-btn">work</button>
+    <button class="menu-button" id="contact-btn">contact</button>
+    <button class="menu-button" id="reset-btn">reset</button>
   </div>
 
   <div class="bottom-sheet" id="about-sheet" role="dialog" aria-modal="true" aria-labelledby="about-sheet-title">
