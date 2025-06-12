@@ -111,8 +111,7 @@ input, textarea { cursor: text; }
 /* === BUTTONS & NAVIGATION === */
 .nav-button {
   position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
+  /* MODIFIED: Top and transform are now set by JS for desktop view to align with menu. */
   background: var(--interactive-bg);
   color: var(--text-color);
   border: none;
@@ -129,14 +128,16 @@ input, textarea { cursor: text; }
 @media (hover: hover) {
   .nav-button:hover {
     background: var(--interactive-bg-hover);
-    transform: translateY(-50%) scale(1.1);
+    /* MODIFIED: Removed translateY to work with new JS positioning. */
+    transform: scale(1.1);
   }
 }
 
 .nav-button:active {
   background: var(--interactive-bg-hover);
   color: var(--text-color);
-  transform: translateY(-50%) scale(0.95);
+  /* MODIFIED: Removed translateY to work with new JS positioning. */
+  transform: scale(0.95);
 }
 @keyframes fadeIn { to { opacity: 1; } }
 #prev { left: 1.25rem; /* 20px */ }
@@ -280,11 +281,16 @@ input, textarea { cursor: text; }
 
 /* --- When a sheet is open on DESKTOP --- */
 @media (min-width: 769px) {
-  /* MODIFIED: The complex positioning logic is now handled by JS.
-     We only need to handle the visual de-emphasis of the player. */
+  /* When a sheet is open, de-emphasise the player to indicate it's inactive. */
   body.sheet-is-open .plyr {
     opacity: 0.7;
     pointer-events: none;
+  }
+  
+  /* On hover, temporarily re-activate the player for interaction. */
+  body.sheet-is-open .plyr-positioner:hover .plyr {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 
@@ -329,7 +335,9 @@ input, textarea { cursor: text; }
   background: var(--sheet-bg); 
   color: var(--text-color); 
   padding: 1.875rem; /* 30px */
-  transition: bottom 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
+  /* MODIFIED: Since JS no longer animates 'left', it's removed from the transition. */
+  transition: bottom 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), 
+              width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   z-index: 1000; 
   width: 50rem; /* 800px */
   max-width: 95vw; 
@@ -631,22 +639,4 @@ body.keyboard-active {
 }
 
 /* === DYNAMIC LAYOUT ADJUSTMENTS === */
-/* These rules are activated by JavaScript when browser zoom causes UI elements to collide. */
-
-body.layout-is-colliding .side-buttons {
-  transform: scale(0.75);
-}
-
-body.layout-is-colliding .nav-button#prev {
-  transform: translateY(-50%) scale(0.75);
-}
-
-@media (hover: hover) {
-  body.layout-is-colliding .nav-button#prev:hover {
-    transform: translateY(-50%) scale(0.85); /* 0.75 * ~1.1 */
-  }
-}
-
-body.layout-is-colliding .nav-button#prev:active {
-  transform: translateY(-50%) scale(0.7); /* 0.75 * ~0.95 */
-}
+/* REMOVED: This entire section is no longer needed. */
