@@ -16,7 +16,8 @@ const CONFIG = {
     FORM_FEEDBACK_DURATION: 5000,
     FORM_VALIDATION_DURATION: 2500,
     PLAYER_DEFAULT_WIDTH: 450,
-    PLAYER_ADJUST_MARGIN: 20,
+    LAYOUT_MARGIN: 20,
+    PLAYER_MIN_FUNCTIONAL_WIDTH: 280, 
 };
 
 // --- DATA (Separated from logic for maintainability) ---
@@ -51,6 +52,7 @@ const state = {
     activeSheet: null,
     contactFormTimeoutId: null,
     minControlsWidth: 0,
+    sheetCssMaxWidth: 0,
 };
 
 let currentLayoutIsMobile = null;
@@ -98,45 +100,85 @@ const UTILS = {
     lerp: (start, end, amt) => (1 - amt) * start + amt * end,
 };
 
-function adjustPlayerForSheet() {
-    if (UTILS.isMobileLayout() || !state.activeSheet || !DOM.playerWrapper) {
+// =======================================================================
+// === NAVIGATION BUTTON ALIGNMENT - NEW ===
+// =======================================================================
+
+function resetNavButtonStyles() {
+    // Clear inline styles to let CSS media queries take over on mobile
+    DOM.prevButton.style.top = '';
+    DOM.prevButton.style.left = '';
+    DOM.prevButton.style.transform = '';
+    DOM.nextButton.style.top = '';
+    DOM.nextButton.style.transform = '';
+}
+
+function alignNavButtons() {
+    if (UTILS.isMobileLayout()) {
+        resetNavButtonStyles();
         return;
     }
 
-    const sheetRect = state.activeSheet.getBoundingClientRect();
-    const margin = CONFIG.PLAYER_ADJUST_MARGIN;
-    
-    // STEP 1: Shrink the wrapper's width first.
-    // This calculates the available space and sets the wrapper's width to fit perfectly, respecting the margins.
-    const availableSpace = window.innerWidth - sheetRect.right;
-    const maxWidthInSpace = availableSpace - (margin * 2);
-    const newWidth = Math.min(CONFIG.PLAYER_DEFAULT_WIDTH, maxWidthInSpace);
-    DOM.playerWrapper.style.width = `${Math.max(0, newWidth)}px`;
+    const sideButtonsRect = DOM.sideButtons.getBoundingClientRect();
+    const sideButtonsStyle = window.getComputedStyle(DOM.sideButtons);
+    const gap = parseFloat(sideButtonsStyle.gap) || 15; // Fallback to 15px
 
-    // STEP 2: Scale the inner player down ONLY if necessary.
-    // This check determines if the new, narrower width is still sufficient for the controls.
-    const playerContainer = state.player?.elements.container;
-    if (!playerContainer) return;
-    
-    if (state.minControlsWidth > 0 && newWidth < state.minControlsWidth) {
-        // If NO, the space is too small. Scale the player down to fit.
-        const scaleFactor = newWidth / state.minControlsWidth;
-        playerContainer.style.transform = `scale(${scaleFactor})`;
-    } else {
-        // If YES, the space is sufficient. Ensure the player is not scaled.
-        playerContainer.style.transform = 'scale(1)';
-    }
+    const desiredTop = sideButtonsRect.bottom + gap;
+
+    // Position Previous Button (#prev)
+    DOM.prevButton.style.top = `${desiredTop}px`;
+    DOM.prevButton.style.left = `${sideButtonsRect.left}px`;
+    DOM.prevButton.style.transform = 'none';
+
+    // Position Next Button (#next) to align vertically
+    DOM.nextButton.style.top = `${desiredTop}px`;
+    DOM.nextButton.style.transform = 'none';
 }
 
-function resetPlayerPosition() {
-    if (DOM.playerWrapper) {
-        DOM.playerWrapper.style.width = '';
+// =======================================================================
+// === ADAPTIVE LAYOUT IMPLEMENTATION - (CENTERED PANEL VERSION) ===
+// =======================================================================
+
+function resetLayoutStyles() {
+    if (state.activeSheet) {
+        state.activeSheet.style.width = '';
     }
-    // Also reset the scale on the inner player to ensure it returns to its default state.
     if (state.player?.elements.container) {
-        state.player.elements.container.style.transform = 'scale(1)';
+        state.player.elements.container.style.transform = '';
     }
 }
+
+function updateAdaptiveLayout() {
+    if (UTILS.isMobileLayout() || !state.activeSheet) {
+        resetLayoutStyles();
+        return;
+    }
+    const viewportWidth = window.innerWidth;
+    const sideMenuRect = DOM.sideButtons.getBoundingClientRect();
+    const margin = CONFIG.LAYOUT_MARGIN;
+    const spaceNeededLeft = sideMenuRect.right > 0 ? sideMenuRect.right + margin : 150 + margin;
+    const spaceNeededRight = (CONFIG.PLAYER_DEFAULT_WIDTH + margin);
+    const calculatedWidth = viewportWidth - spaceNeededLeft - spaceNeededRight;
+    const finalPanelWidth = Math.min(calculatedWidth, state.sheetCssMaxWidth);
+    const panelHalfWidth = finalPanelWidth / 2;
+    const viewportCenter = viewportWidth / 2;
+    const panelRightEdge = viewportCenter + panelHalfWidth;
+    const playerLeftEdge = viewportWidth - spaceNeededRight;
+    let playerScale = 1.0;
+    if (panelRightEdge > playerLeftEdge) {
+        const availableSpaceForPlayer = viewportWidth - panelRightEdge - margin;
+        playerScale = availableSpaceForPlayer / CONFIG.PLAYER_DEFAULT_WIDTH;
+    }
+    state.activeSheet.style.width = `${Math.max(0, finalPanelWidth)}px`;
+    if (state.player?.elements.container) {
+        const clampedScale = Math.min(1.0, Math.max(0.5, playerScale)); 
+        state.player.elements.container.style.transform = `scale(${clampedScale})`;
+    }
+}
+// =======================================================================
+// === END OF ADAPTIVE LAYOUT IMPLEMENTATION ===
+// =======================================================================
+
 
 function createGreyscaleImageData(sourceCtx, width, height) {
     const originalPixels = sourceCtx.getImageData(0, 0, width, height);
@@ -181,35 +223,30 @@ function initAudioPlayer() {
         i18n: { rewind: 'Previous Track', fastForward: 'Next Track' }
     });
     state.player = player;
-
+    const interruptVolumeFade = () => {
+        if (state.volumeFadeInterval) {
+            clearInterval(state.volumeFadeInterval);
+            state.volumeFadeInterval = null;
+        }
+    };
     player.on('ready', (event) => {
         const controlsElement = event.detail.plyr.elements.controls;
         if (!controlsElement) return;
-        
-        // Dynamically measure the minimum space the controls actually need.
         const nonFlexibleControls = controlsElement.querySelectorAll('button, .plyr__volume');
         let totalWidth = 0;
         nonFlexibleControls.forEach(el => {
             totalWidth += el.offsetWidth;
         });
-        const controlsBuffer = 20; // Add a small buffer for gaps/margins.
+        const controlsBuffer = 20;
         state.minControlsWidth = totalWidth + controlsBuffer;
-
         controlsElement.querySelector('button[data-plyr="rewind"]')?.addEventListener('click', handlePrevTrack);
         controlsElement.querySelector('button[data-plyr="fast-forward"]')?.addEventListener('click', handleNextTrack);
-        
         const volumeContainer = controlsElement.querySelector('.plyr__volume');
         if (volumeContainer) {
-            const interruptVolumeFade = () => {
-                if (state.volumeFadeInterval) {
-                    clearInterval(state.volumeFadeInterval);
-                    state.volumeFadeInterval = null;
-                }
-            };
             volumeContainer.addEventListener('pointerdown', interruptVolumeFade);
         }
     });
-
+    player.on('pause', interruptVolumeFade);
     player.on('ended', handleNextTrack);
 }
 
@@ -375,26 +412,24 @@ function handleNavButtonClick(direction) { const newIndex = (state.currentVisual
 function toggleSheet(sheetName) {
     const sheetElement = DOM.sheets[sheetName];
     const isVisible = sheetElement.classList.contains('visible');
-    
     closeAllSheets(); 
-
     if (!isVisible) {
         sheetElement.classList.add('visible');
         DOM.body.classList.add('sheet-is-open'); 
         state.activeSheet = sheetElement;
-        adjustPlayerForSheet();
+        updateAdaptiveLayout();
         sheetElement.querySelector('h2, li[tabindex="0"], input, textarea, button, .sheet-close')?.focus();
     }
 }
 
 function closeAllSheets() {
-    resetPlayerPosition();
     if (state.activeSheet === DOM.sheets.contact) {
         resetContactForm();
     }
     Object.values(DOM.sheets).forEach(s => s.classList.remove('visible'));
     DOM.body.classList.remove('sheet-is-open');
     state.activeSheet = null;
+    updateAdaptiveLayout();
 }
 
 function setContactFormState(formState) {
@@ -433,8 +468,19 @@ function updateRevealerPosition(event) {
     }
     let pageX, pageY, target;
     if (event.touches?.length > 0) { pageX = event.touches[0].pageX; pageY = event.touches[0].pageY; target = document.elementFromPoint(pageX, pageY); } else { pageX = event.pageX; pageY = event.pageY; target = event.target; }
+    
+    // On mobile, if touch is over the top menu bar, just hide the bubble and do not update its position.
+    // The '.side-buttons' selector specifically targets this bar in the mobile layout.
+    if (UTILS.isMobileLayout() && target?.closest('.side-buttons')) {
+        DOM.colorRevealer.style.opacity = '0';
+        // Exit early to prevent the bubble's position state (mouseX/Y) from being updated.
+        return; 
+    }
+
+    // If not on the mobile menu bar, proceed with updating position and handling other interactive elements.
     state.mouseX = pageX; state.mouseY = pageY; state.isMouseMoving = true;
     clearTimeout(state.mouseMoveTimeout); state.mouseMoveTimeout = setTimeout(() => { state.isMouseMoving = false; }, CONFIG.MOUSE_IDLE_TIMEOUT);
+    
     const interactiveSelector = '.menu-button, .nav-button, .plyr-positioner, .sheet-content, .sheet-close, input, textarea, button, #work-track-list li, #unmute-overlay';
     const isOverInteractive = target?.closest(interactiveSelector);
     DOM.colorRevealer.style.opacity = isOverInteractive ? '0' : '1';
@@ -462,11 +508,8 @@ function handleResize() {
     } else {
         resizeAllCanvases();
     }
-    
-    if (state.activeSheet) {
-        adjustPlayerForSheet();
-    }
-
+    updateAdaptiveLayout();
+    alignNavButtons(); // MODIFIED: Recalculate button positions on resize.
     setTimeout(() => {
         if (state.experienceHasStarted) {
             startRevealAnimation();
@@ -516,32 +559,8 @@ function handleSheetTouchEnd(event) {
     if (deltaY > CONFIG.SWIPE_CLOSE_THRESHOLD_Y) { closeAllSheets(); } state.touchStartY = 0;
 }
 
-function initCollisionObserver() {
-    const { prevButton, sideButtons } = DOM;
-    if (!prevButton || !sideButtons || typeof ResizeObserver === 'undefined') {
-        return;
-    }
-    const observer = new ResizeObserver(() => {
-        if (UTILS.isMobileLayout()) {
-            DOM.body.classList.remove('layout-is-colliding');
-            return;
-        }
-
-        const arrowRect = prevButton.getBoundingClientRect();
-        const menuRect = sideButtons.getBoundingClientRect();
-
-        const isOverlapping = 
-            arrowRect.right > menuRect.left &&
-            arrowRect.left < menuRect.right &&
-            arrowRect.bottom > menuRect.top &&
-            arrowRect.top < menuRect.bottom;
-
-        DOM.body.classList.toggle('layout-is-colliding', isOverlapping);
-    });
-
-    observer.observe(prevButton);
-    observer.observe(sideButtons);
-}
+// REMOVED: The entire initCollisionObserver function is no longer needed.
+// function initCollisionObserver() { ... }
 
 function initEventListeners() {
     DOM.prevButton.addEventListener('click', () => handleNavButtonClick(-1));
@@ -564,7 +583,6 @@ function initEventListeners() {
         sheet.addEventListener('touchstart', handleSheetTouchStart, { passive: true });
         sheet.addEventListener('touchend', handleSheetTouchEnd);
     });
-
     let lastTap = 0;
     document.addEventListener('touchend', (event) => {
         if (!UTILS.isTouchDevice() || !state.experienceHasStarted) return;
@@ -591,19 +609,21 @@ function initKeyboardHandlers() {
 
 function main() {
     currentLayoutIsMobile = UTILS.isMobileLayout();
+    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    state.sheetCssMaxWidth = 50 * rootFontSize;
     initGallery();
     initAudioPlayer();
     initEventListeners();
-    initCollisionObserver();
+    // REMOVED: Call to the collision observer is no longer needed.
+    // initCollisionObserver();
     updateBubbleSize();
     populateWorkSheet();
     loadGlobalTrack(state.currentGlobalTrackIndex, false);
     initKeyboardHandlers();
     showSlide(state.currentVisualSlideIndex);
-
+    alignNavButtons(); // MODIFIED: Set initial button positions.
     const overlayText = DOM.unmuteOverlay.querySelector('p');
     overlayText.textContent = 'ENTER';
-
     const startExperience = () => {
         if (state.experienceHasStarted) return;
         state.experienceHasStarted = true;
@@ -612,15 +632,16 @@ function main() {
         startRevealAnimation();
         const audioStartDelay = currentLayoutIsMobile ? 6200 : 5200;
         setTimeout(() => {
-            state.player.volume = 0;
-            const playPromise = state.player.play();
-            fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
-            if (playPromise !== undefined) {
-                playPromise.catch(e => console.error("Auto-play failed after gesture:", e));
+            if (state.player && !state.player.playing) {
+                state.player.volume = 0;
+                const playPromise = state.player.play();
+                fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => console.error("Auto-play failed after gesture:", e));
+                }
             }
         }, audioStartDelay);
     };
-
     const handleUserInteraction = () => {
         if (state.player?.media?.tagName === 'AUDIO') {
             const context = new(window.AudioContext || window.webkitAudioContext)();
@@ -645,7 +666,6 @@ function main() {
             startExperience();
         }
     };
-
     let interactionHandled = false;
     const onceHandler = (event) => {
         if (interactionHandled) return;
@@ -653,7 +673,6 @@ function main() {
         event.preventDefault();
         handleUserInteraction();
     };
-    
     DOM.unmuteOverlay.addEventListener('touchend', onceHandler, { passive: false });
     DOM.unmuteOverlay.addEventListener('click', onceHandler);
 }
