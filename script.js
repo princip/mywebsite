@@ -1,4 +1,3 @@
-
 // --- script.js - Refactored for Best Practices & Seamless Reset ---
 
 // --- CONFIGURATION ---
@@ -560,8 +559,28 @@ function handleSheetTouchEnd(event) {
     if (deltaY > CONFIG.SWIPE_CLOSE_THRESHOLD_Y) { closeAllSheets(); } state.touchStartY = 0;
 }
 
-// REMOVED: The entire initCollisionObserver function is no longer needed.
-// function initCollisionObserver() { ... }
+function initCollisionObserver() {
+    const { prevButton, sideButtons } = DOM;
+    if (!prevButton || !sideButtons || typeof ResizeObserver === 'undefined') {
+        return;
+    }
+    const observer = new ResizeObserver(() => {
+        if (UTILS.isMobileLayout()) {
+            DOM.body.classList.remove('layout-is-colliding');
+            return;
+        }
+        const arrowRect = prevButton.getBoundingClientRect();
+        const menuRect = sideButtons.getBoundingClientRect();
+        const isOverlapping = 
+            arrowRect.right > menuRect.left &&
+            arrowRect.left < menuRect.right &&
+            arrowRect.bottom > menuRect.top &&
+            arrowRect.top < menuRect.bottom;
+        DOM.body.classList.toggle('layout-is-colliding', isOverlapping);
+    });
+    observer.observe(prevButton);
+    observer.observe(sideButtons);
+}
 
 function initEventListeners() {
     DOM.prevButton.addEventListener('click', () => handleNavButtonClick(-1));
@@ -615,8 +634,7 @@ function main() {
     initGallery();
     initAudioPlayer();
     initEventListeners();
-    // REMOVED: Call to the collision observer is no longer needed.
-    // initCollisionObserver();
+    initCollisionObserver();
     updateBubbleSize();
     populateWorkSheet();
     loadGlobalTrack(state.currentGlobalTrackIndex, false);
