@@ -36,6 +36,9 @@ const state = {
     experienceHasStarted: false,
     isGreyscale: false, 
     volumeFadeInterval: null,
+    // MODIFIED: Added state for refined audio control
+    initialAutoplayTimeoutId: null,
+    userHasSetVolume: false,
     animationFrameId: null,
     canvasData: new Map(),
     mouseX: window.innerWidth / 2,
@@ -242,12 +245,22 @@ function initAudioPlayer() {
         i18n: { rewind: 'Previous Track', fastForward: 'Next Track' }
     });
     state.player = player;
+
+    // --- MODIFIED: Centralized handlers for refined initial autoplay/fade logic ---
+    const cancelInitialAutoplay = () => {
+        if (state.initialAutoplayTimeoutId) {
+            clearTimeout(state.initialAutoplayTimeoutId);
+            state.initialAutoplayTimeoutId = null;
+        }
+    };
+
     const interruptVolumeFade = () => {
         if (state.volumeFadeInterval) {
             clearInterval(state.volumeFadeInterval);
             state.volumeFadeInterval = null;
         }
     };
+
     player.on('ready', (event) => {
         const controlsElement = event.detail.plyr.elements.controls;
         if (!controlsElement) return;
@@ -260,14 +273,38 @@ function initAudioPlayer() {
         state.minControlsWidth = totalWidth + controlsBuffer;
         controlsElement.querySelector('button[data-plyr="rewind"]')?.addEventListener('click', handlePrevTrack);
         controlsElement.querySelector('button[data-plyr="fast-forward"]')?.addEventListener('click', handleNextTrack);
+        
         const volumeContainer = controlsElement.querySelector('.plyr__volume');
         if (volumeContainer) {
-            volumeContainer.addEventListener('pointerdown', interruptVolumeFade);
+            volumeContainer.addEventListener('pointerdown', () => {
+                interruptVolumeFade();
+                state.userHasSetVolume = true; // Flag that user has taken control of volume
+            });
         }
     });
-    player.on('pause', interruptVolumeFade);
+
+    // MODIFIED: Enhanced player event listeners for refined control
+    player.on('play', () => {
+        // If user presses play before the scheduled autoplay, take over.
+        if (state.initialAutoplayTimeoutId) {
+            cancelInitialAutoplay();
+            interruptVolumeFade();
+            
+            // Start playback with a fade-in immediately.
+            state.player.volume = 0;
+            fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
+        }
+    });
+
+    player.on('pause', () => {
+        // If user pauses at any time, cancel all scheduled/ongoing audio actions.
+        cancelInitialAutoplay();
+        interruptVolumeFade();
+    });
+
     player.on('ended', handleNextTrack);
 }
+
 
 function fadeVolumeIn(targetVolume, duration) {
     if (state.volumeFadeInterval) clearInterval(state.volumeFadeInterval);
@@ -645,24 +682,47 @@ function main() {
     alignNavButtons();
     const overlayText = DOM.unmuteOverlay.querySelector('p');
     overlayText.textContent = 'ENTER';
+
+    // MODIFIED: The startExperience function is updated for refined audio control.
     const startExperience = () => {
         if (state.experienceHasStarted) return;
         state.experienceHasStarted = true;
+        // Reset audio interaction state when experience (re)starts
+        state.userHasSetVolume = false;
+        state.initialAutoplayTimeoutId = null;
+        
         DOM.unmuteOverlay.classList.add('hidden');
         DOM.body.classList.add('experience-started');
         startRevealAnimation();
         const audioStartDelay = currentLayoutIsMobile ? 6200 : 5200;
-        setTimeout(() => {
+
+        // Schedule the delayed autoplay
+        state.initialAutoplayTimeoutId = setTimeout(() => {
+            // Mark the timer as having fired, so manual play/pause logic no longer triggers for this initial sequence.
+            state.initialAutoplayTimeoutId = null;
+
+            // Only proceed if the player exists and isn't already playing (e.g., from user action).
             if (state.player && !state.player.playing) {
-                state.player.volume = 0;
+                // If user hasn't set volume, prepare for fade-in by setting volume to 0 first.
+                if (!state.userHasSetVolume) {
+                    state.player.volume = 0;
+                }
+
+                // Now, play the audio. It will start at volume 0 or at the user-set volume.
                 const playPromise = state.player.play();
-                fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
+
+                // If we are doing a fade-in, start it now that playback has begun.
+                if (!state.userHasSetVolume) {
+                    fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
+                }
+                
                 if (playPromise !== undefined) {
-                    playPromise.catch(e => console.error("Auto-play failed after gesture:", e));
+                    playPromise.catch(e => console.error("Delayed auto-play failed:", e));
                 }
             }
         }, audioStartDelay);
     };
+
     const handleUserInteraction = () => {
         if (state.player?.media?.tagName === 'AUDIO') {
             const context = new(window.AudioContext || window.webkitAudioContext)();
