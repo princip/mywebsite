@@ -639,13 +639,15 @@ input, textarea { cursor: text; }
 .form-feedback {
   /* MODIFIED: px to rem */
   padding: 0.75rem 0.9375rem; /* 12px 15px */
-  margin: 0.3125rem 0 0.625rem 0; /* 5px 10px */
+  margin: 0; /* Let grid gap handle spacing for consistency. */
   border-radius: 0.25rem; /* 4px */
   text-align: center; font-weight: 400; opacity: 0;
   /* MODIFIED: px to rem */
   transform: translateY(-0.625rem); /* -10px */
   max-height: 0; overflow: hidden;
   transition: all 0.3s ease;
+  /* Visually move this after the button to ensure consistent spacing above the button. */
+  order: 1;
 }
 /* MODIFIED: px to rem */
 .form-feedback.visible { opacity: 1; transform: translateY(0); max-height: 6.25rem; /* 100px */ }
