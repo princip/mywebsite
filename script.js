@@ -679,7 +679,32 @@ function main() {
     loadGlobalTrack(state.currentGlobalTrackIndex, false);
     initKeyboardHandlers();
     showSlide(state.currentVisualSlideIndex);
-    alignNavButtons();
+    // alignNavButtons(); // <-- REMOVED from here
+
+    // --- START: NEW ROBUST ALIGNMENT LOGIC ---
+    // This ensures layout calculations happen only after rendering is stable.
+
+    // 1. A promise that resolves when all fonts are loaded.
+    const fontsReady = document.fonts.ready;
+
+    // 2. A promise that resolves when the last menu button's animation finishes.
+    const lastAnimatedButton = document.querySelector('.menu-button:nth-child(4)');
+    const animationDone = new Promise(resolve => {
+        if (lastAnimatedButton) {
+            lastAnimatedButton.addEventListener('animationend', resolve, { once: true });
+        } else {
+            // If the button doesn't exist (e.g., mobile layout), resolve immediately.
+            resolve();
+        }
+    });
+
+    // 3. Wait for BOTH promises to complete before aligning the buttons.
+    Promise.all([fontsReady, animationDone]).then(() => {
+        console.log("Fonts loaded and animations finished. Aligning nav buttons.");
+        alignNavButtons();
+    });
+    // --- END: NEW ROBUST ALIGNMENT LOGIC ---
+
     const overlayText = DOM.unmuteOverlay.querySelector('p');
     overlayText.textContent = 'ENTER';
 
