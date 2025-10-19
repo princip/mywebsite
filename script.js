@@ -6,7 +6,7 @@
 
 const Analytics = {
     sessionId: null,
-    analyticsEndpoint: 'https://dry-bread-0bdb.louiloui.workers.dev', 
+    analyticsEndpoint: 'https://analytics-collector.louiloui.workers.dev',
     currentTrack: null,
     trackStartTime: null,
     
