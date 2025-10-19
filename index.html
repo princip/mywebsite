@@ -14,11 +14,9 @@
   <!-- ==================================================== -->
   
   <!-- Fonts & Stylesheets -->
-  <!-- MODIFIED: Replaced Montserrat with Satoshi and Inter fonts. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,400&display=swap" rel="stylesheet">
-  <!-- MODIFIED: Added Syne font and combined Google Fonts requests for efficiency. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&family=Syne:wght@700&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
@@ -48,7 +46,6 @@
   </main>
 
   <div class="side-buttons">
-    <!-- MODIFIED: Button text is now in lowercase. -->
     <button class="menu-button" id="about-btn">about</button>
     <button class="menu-button" id="work-btn">work</button>
     <button class="menu-button" id="contact-btn">contact</button>
@@ -78,14 +75,26 @@
     <div class="sheet-content">
       <h2 id="contact-sheet-title">Contact</h2>
       <form id="contact-form" novalidate>
-        <label for="name" class="sr-only">Your Name</label>
-        <input type="text" id="name" name="name" placeholder="Your Name" required>
-        
-        <label for="email" class="sr-only">Your Email</label>
-        <input type="email" id="email" name="email" placeholder="Your Email" required>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="name" class="sr-only">Your Name</label>
+            <input type="text" id="name" name="name" placeholder="Your Name" required>
+          </div>
+          
+          <div class="form-field">
+            <label for="email" class="sr-only">Your Email</label>
+            <input type="email" id="email" name="email" placeholder="Your Email" required>
+          </div>
+        </div>
         
         <label for="message" class="sr-only">Your Message</label>
         <textarea id="message" name="message" placeholder="Your Message" required></textarea>
+        
+        <!-- CAPTCHA Field -->
+        <input type="text" id="captcha" name="captcha" placeholder="What is 5 + 3?" required autocomplete="off">
+        
+        <!-- Honeypot field (hidden from users, catches bots) -->
+        <input type="text" name="website" id="website" class="honeypot" tabindex="-1" autocomplete="off">
         
         <div class="form-feedback" aria-live="polite"></div>
         <button type="submit">Send</button>
