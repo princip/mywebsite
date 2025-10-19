@@ -1,4 +1,115 @@
-// --- script.js - Refactored for Best Practices & Seamless Reset ---
+// --- script.js - Enhanced with Analytics & Captcha ---
+
+// =======================================================================
+// === ANALYTICS SYSTEM (Server-Side) ===
+// =======================================================================
+
+const Analytics = {
+    sessionId: null,
+    analyticsEndpoint: 'https://dry-bread-0bdb.louiloui.workers.dev', 
+    currentTrack: null,
+    trackStartTime: null,
+    
+    init() {
+        // Generate a session ID
+        this.sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        console.log('Analytics initialized - Session:', this.sessionId);
+    },
+    
+    async track(eventName, eventData = {}) {
+        const event = {
+            session: this.sessionId,
+            event: eventName,
+            data: eventData,
+            timestamp: Date.now()
+        };
+        
+        console.log('📊 Analytics Event:', eventName, eventData);
+        
+        // Send to server
+        try {
+            await fetch(this.analyticsEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(event)
+            });
+        } catch (error) {
+            console.warn('Failed to send analytics:', error);
+        }
+    },
+    
+    // Track audio playback
+    trackPlay(trackTitle, trackIndex) {
+        this.currentTrack = trackTitle;
+        this.trackStartTime = Date.now();
+        
+        this.track('track_play', {
+            trackTitle,
+            trackIndex
+        });
+    },
+    
+    trackProgress(trackTitle, percentageListened, duration, currentTime) {
+        this.track('track_progress', {
+            trackTitle,
+            percentageListened,
+            duration,
+            currentTime
+        });
+    },
+    
+    trackCompletion(trackTitle, percentageListened) {
+        const playDuration = this.trackStartTime 
+            ? (Date.now() - this.trackStartTime) / 1000 
+            : 0;
+        
+        this.track('track_completion', {
+            trackTitle,
+            percentageListened,
+            playDuration
+        });
+        
+        this.currentTrack = null;
+        this.trackStartTime = null;
+    }
+};
+
+// =======================================================================
+// === CAPTCHA SYSTEM ===
+// =======================================================================
+
+const Captcha = {
+    answer: null,
+    
+    generate() {
+        const num1 = Math.floor(Math.random() * 10) + 1;
+        const num2 = Math.floor(Math.random() * 10) + 1;
+        const operators = ['+', '-'];
+        const operator = operators[Math.floor(Math.random() * operators.length)];
+        
+        this.answer = operator === '+' ? num1 + num2 : num1 - num2;
+        
+        const captchaInput = document.getElementById('captcha');
+        if (captchaInput) {
+            captchaInput.placeholder = `What is ${num1} ${operator} ${num2}?`;
+        }
+        
+        return this.answer;
+    },
+    
+    validate(userAnswer) {
+        const parsed = parseInt(userAnswer);
+        return !isNaN(parsed) && parsed === this.answer;
+    },
+    
+    reset() {
+        const captchaInput = document.getElementById('captcha');
+        if (captchaInput) {
+            captchaInput.value = '';
+        }
+        this.generate();
+    }
+};
 
 // --- CONFIGURATION ---
 const CONFIG = {
@@ -15,18 +126,23 @@ const CONFIG = {
     INITIAL_VOLUME: 0.65, 
     FORM_FEEDBACK_DURATION: 5000,
     FORM_VALIDATION_DURATION: 2500,
-    // MODIFIED: Replaced pixel values with rem values for scalability.
-    PLAYER_DEFAULT_WIDTH_REM: 28.125, // 450px
-    LAYOUT_MARGIN_REM: 1.25,          // 20px
-    PLAYER_MIN_FUNCTIONAL_WIDTH_REM: 17.5, // 280px
+    PLAYER_DEFAULT_WIDTH_REM: 28.125,
+    LAYOUT_MARGIN_REM: 1.25,
+    PLAYER_MIN_FUNCTIONAL_WIDTH_REM: 17.5,
 };
 
-// --- DATA (Separated from logic for maintainability) ---
+// --- DATA ---
 const backgroundImages = {
     desktop: ['https://i.postimg.cc/MGr5s3CL/1.webp', 'https://i.postimg.cc/FKKGVXBc/2.webp', 'https://i.postimg.cc/W1T5tkm5/3.webp', 'https://i.postimg.cc/d1bBFktm/4.webp', 'https://i.postimg.cc/TwL9BqG3/5.webp', 'https://i.postimg.cc/438FvJbk/6.webp'],
     mobile: ['https://i.postimg.cc/J4RVL9kH/1.webp', 'https://i.postimg.cc/9Qf64Z1W/2.webp', 'https://i.postimg.cc/sDKFDwY6/3.webp', 'https://i.postimg.cc/rp07jTv3/4.webp', 'https://i.postimg.cc/g2Bf3jB3/5.webp', 'https://i.postimg.cc/Bvrkwy36/6.webp', 'https://i.postimg.cc/PJhcdwPn/7.webp', 'https://i.postimg.cc/FFg8DDBr/8.webp', 'https://i.postimg.cc/nzqg8kV1/9.webp', 'https://i.postimg.cc/Wznyz1kF/10.webp', 'https://i.postimg.cc/5NsGMjJD/11.webp', 'https://i.postimg.cc/HsYKKXqQ/12.webp', 'https://i.postimg.cc/cL6z1Z4C/13.webp', 'https://i.postimg.cc/cLjbrjrm/14.webp', 'https://i.postimg.cc/rprYWJ4L/15.webp', 'https://i.postimg.cc/1t17Kq0V/16.webp', 'https://i.postimg.cc/8ctyDX2L/17.webp', 'https://i.postimg.cc/G2P7gmz7/18.webp', 'https://i.postimg.cc/SRyZBbvy/19.webp', 'https://i.postimg.cc/yYpfb5XH/20.webp', 'https://i.postimg.cc/BZg7xtjt/21.webp', 'https://i.postimg.cc/ZK57jZNH/22.webp', 'https://i.postimg.cc/NjWdgHzC/23.webp', 'https://i.postimg.cc/NjyNq4pr/24.webp', 'https://i.postimg.cc/DzLBmzVv/25.webp', 'https://i.postimg.cc/Y0q3Xfv0/26.webp', 'https://i.postimg.cc/9M219jVG/27.webp', 'https://i.postimg.cc/4d1PbFNj/28.webp']
 };
-const allUniqueTracks = [{ url: "https://princip.github.io/mp3/Website_Delta.mp3", title: "Delta" }, { url: "https://princip.github.io/mp3/Website_Oh_Tilda.mp3", title: "Oh Tilda" }, { url: "https://princip.github.io/mp3/Website_R_Is_For_Rain.mp3", title: "R is for Rain" }, { url: "https://princip.github.io/mp3/Website_Mikro_Enthymio.mp3", title: "Mikro Enthymio" }, { url: "https://princip.github.io/mp3/Website_Solar_Eclipse_no8.mp3", title: "Solar Eclipse no.8" }, ];
+const allUniqueTracks = [
+    { url: "https://princip.github.io/mp3/Website_Delta.mp3", title: "Delta" }, 
+    { url: "https://princip.github.io/mp3/Website_Oh_Tilda.mp3", title: "Oh Tilda" }, 
+    { url: "https://princip.github.io/mp3/Website_R_Is_For_Rain.mp3", title: "R is for Rain" }, 
+    { url: "https://princip.github.io/mp3/Website_Mikro_Enthymio.mp3", title: "Mikro Enthymio" }, 
+    { url: "https://princip.github.io/mp3/Website_Solar_Eclipse_no8.mp3", title: "Solar Eclipse no.8" }
+];
 
 // --- STATE MANAGEMENT ---
 const state = {
@@ -36,7 +152,6 @@ const state = {
     experienceHasStarted: false,
     isGreyscale: false, 
     volumeFadeInterval: null,
-    // MODIFIED: Added state for refined audio control
     initialAutoplayTimeoutId: null,
     userHasSetVolume: false,
     animationFrameId: null,
@@ -57,7 +172,6 @@ const state = {
     contactFormTimeoutId: null,
     minControlsWidth: 0,
     sheetCssMaxWidth: 0,
-    // MODIFIED: Added rootFontSize to state for scalable calculations.
     rootFontSize: 16,
 };
 
@@ -107,11 +221,10 @@ const UTILS = {
 };
 
 // =======================================================================
-// === NAVIGATION BUTTON ALIGNMENT - NEW ===
+// === NAVIGATION BUTTON ALIGNMENT ===
 // =======================================================================
 
 function resetNavButtonStyles() {
-    // Clear inline styles to let CSS media queries take over on mobile
     DOM.prevButton.style.top = '';
     DOM.prevButton.style.left = '';
     DOM.prevButton.style.transform = '';
@@ -127,26 +240,22 @@ function alignNavButtons() {
 
     const sideButtonsRect = DOM.sideButtons.getBoundingClientRect();
     const sideButtonsStyle = window.getComputedStyle(DOM.sideButtons);
-    const gap = parseFloat(sideButtonsStyle.gap) || (0.9375 * state.rootFontSize); // Fallback to 0.9375rem
+    const gap = parseFloat(sideButtonsStyle.gap) || (0.9375 * state.rootFontSize);
 
     const desiredTop = sideButtonsRect.bottom + gap;
-    
-    // MODIFIED: Calculate positions in `rem` for scalability.
     const desiredTopRem = desiredTop / state.rootFontSize;
     const leftRem = sideButtonsRect.left / state.rootFontSize;
 
-    // Position Previous Button (#prev)
     DOM.prevButton.style.top = `${desiredTopRem}rem`;
     DOM.prevButton.style.left = `${leftRem}rem`;
     DOM.prevButton.style.transform = 'none';
 
-    // Position Next Button (#next) to align vertically
     DOM.nextButton.style.top = `${desiredTopRem}rem`;
     DOM.nextButton.style.transform = 'none';
 }
 
 // =======================================================================
-// === ADAPTIVE LAYOUT IMPLEMENTATION - (CENTERED PANEL VERSION) ===
+// === ADAPTIVE LAYOUT IMPLEMENTATION ===
 // =======================================================================
 
 function resetLayoutStyles() {
@@ -164,7 +273,6 @@ function updateAdaptiveLayout() {
         return;
     }
     
-    // MODIFIED: Perform all calculations in pixels based on rem config, then apply final style in rem.
     const rootFontSize = state.rootFontSize;
     const viewportWidth = window.innerWidth;
     const sideMenuRect = DOM.sideButtons.getBoundingClientRect();
@@ -172,7 +280,7 @@ function updateAdaptiveLayout() {
     const margin = CONFIG.LAYOUT_MARGIN_REM * rootFontSize;
     const playerDefaultWidthPx = CONFIG.PLAYER_DEFAULT_WIDTH_REM * rootFontSize;
 
-    const spaceNeededLeft = sideMenuRect.right > 0 ? sideMenuRect.right + margin : (150 + margin); // 150px fallback
+    const spaceNeededLeft = sideMenuRect.right > 0 ? sideMenuRect.right + margin : (150 + margin);
     const spaceNeededRight = (playerDefaultWidthPx + margin);
     
     const calculatedWidth = viewportWidth - spaceNeededLeft - spaceNeededRight;
@@ -197,10 +305,6 @@ function updateAdaptiveLayout() {
         state.player.elements.container.style.transform = `scale(${clampedScale})`;
     }
 }
-// =======================================================================
-// === END OF ADAPTIVE LAYOUT IMPLEMENTATION ===
-// =======================================================================
-
 
 function createGreyscaleImageData(sourceCtx, width, height) {
     const originalPixels = sourceCtx.getImageData(0, 0, width, height);
@@ -236,6 +340,9 @@ function resetColorReveal() {
             gsap.to(canvas, { opacity: 1, duration: 0.4, ease: 'power1.in' });
         }
     });
+    
+    // Track reset action
+    Analytics.track('color_reveal_reset');
 }
 
 function initAudioPlayer() {
@@ -246,7 +353,6 @@ function initAudioPlayer() {
     });
     state.player = player;
 
-    // --- MODIFIED: Centralized handlers for refined initial autoplay/fade logic ---
     const cancelInitialAutoplay = () => {
         if (state.initialAutoplayTimeoutId) {
             clearTimeout(state.initialAutoplayTimeoutId);
@@ -278,33 +384,57 @@ function initAudioPlayer() {
         if (volumeContainer) {
             volumeContainer.addEventListener('pointerdown', () => {
                 interruptVolumeFade();
-                state.userHasSetVolume = true; // Flag that user has taken control of volume
+                state.userHasSetVolume = true;
             });
         }
     });
 
-    // MODIFIED: Enhanced player event listeners for refined control
     player.on('play', () => {
-        // If user presses play before the scheduled autoplay, take over.
         if (state.initialAutoplayTimeoutId) {
             cancelInitialAutoplay();
             interruptVolumeFade();
-            
-            // Start playback with a fade-in immediately.
             state.player.volume = 0;
             fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
         }
+        
+        // Track play event
+        const currentTrack = allUniqueTracks[state.currentGlobalTrackIndex];
+        Analytics.trackPlay(currentTrack.title, state.currentGlobalTrackIndex);
     });
 
     player.on('pause', () => {
-        // If user pauses at any time, cancel all scheduled/ongoing audio actions.
         cancelInitialAutoplay();
         interruptVolumeFade();
     });
 
-    player.on('ended', handleNextTrack);
-}
+    // Track audio progress (every 5 seconds to avoid too many requests)
+    let lastProgressUpdate = 0;
+    player.on('timeupdate', () => {
+        if (!player.duration || player.duration === 0) return;
+        
+        const now = Date.now();
+        if (now - lastProgressUpdate < 5000) return; // Only update every 5 seconds
+        lastProgressUpdate = now;
+        
+        const currentTrack = allUniqueTracks[state.currentGlobalTrackIndex];
+        const percentageListened = (player.currentTime / player.duration) * 100;
+        
+        Analytics.trackProgress(
+            currentTrack.title, 
+            percentageListened,
+            player.duration,
+            player.currentTime
+        );
+    });
 
+    player.on('ended', () => {
+        // Track completion before moving to next track
+        const currentTrack = allUniqueTracks[state.currentGlobalTrackIndex];
+        Analytics.trackCompletion(currentTrack.title, 100);
+        
+        handleNextTrack();
+    });
+}
 
 function fadeVolumeIn(targetVolume, duration) {
     if (state.volumeFadeInterval) clearInterval(state.volumeFadeInterval);
@@ -324,6 +454,15 @@ function fadeVolumeIn(targetVolume, duration) {
 }
 
 function loadGlobalTrack(globalTrackIdx, playImmediately = true) {
+    // Track completion of previous track if it was playing
+    if (state.player && state.currentGlobalTrackIndex !== globalTrackIdx && Analytics.currentTrack) {
+        const previousTrack = allUniqueTracks[state.currentGlobalTrackIndex];
+        if (previousTrack && state.player.duration > 0) {
+            const percentageListened = (state.player.currentTime / state.player.duration) * 100;
+            Analytics.trackCompletion(previousTrack.title, percentageListened);
+        }
+    }
+    
     if (playImmediately && state.experienceHasStarted) {
         if (state.volumeFadeInterval) {
             clearInterval(state.volumeFadeInterval);
@@ -347,9 +486,15 @@ function loadGlobalTrack(globalTrackIdx, playImmediately = true) {
     }
 }
 
-function handleNextTrack() { let nextTrackIndex = (state.currentGlobalTrackIndex + 1) % allUniqueTracks.length; loadGlobalTrack(nextTrackIndex, true); }
+function handleNextTrack() { 
+    let nextTrackIndex = (state.currentGlobalTrackIndex + 1) % allUniqueTracks.length; 
+    loadGlobalTrack(nextTrackIndex, true); 
+}
 
-function handlePrevTrack() { let prevTrackIndex = (state.currentGlobalTrackIndex - 1 + allUniqueTracks.length) % allUniqueTracks.length; loadGlobalTrack(prevTrackIndex, true); }
+function handlePrevTrack() { 
+    let prevTrackIndex = (state.currentGlobalTrackIndex - 1 + allUniqueTracks.length) % allUniqueTracks.length; 
+    loadGlobalTrack(prevTrackIndex, true); 
+}
 
 function initGallery() {
     DOM.gallery.innerHTML = '';
@@ -366,7 +511,10 @@ function initGallery() {
     state.slides = document.querySelectorAll('.slide');
 }
 
-function getImageUrlForSlide(index) { const imageSet = UTILS.isMobileLayout() ? backgroundImages.mobile : backgroundImages.desktop; return imageSet[index % imageSet.length]; }
+function getImageUrlForSlide(index) { 
+    const imageSet = UTILS.isMobileLayout() ? backgroundImages.mobile : backgroundImages.desktop; 
+    return imageSet[index % imageSet.length]; 
+}
 
 function initSlideCanvas(slideElement, index, forceReload = false) {
     const canvas = slideElement.querySelector('.background-canvas');
@@ -448,22 +596,50 @@ function revealLoop() {
     state.animationFrameId = requestAnimationFrame(revealLoop);
 }
 
-function startRevealAnimation() { if (state.animationFrameId) cancelAnimationFrame(state.animationFrameId); if (state.canvasData.has(state.slides[state.currentVisualSlideIndex])) { state.animationFrameId = requestAnimationFrame(revealLoop); } }
+function startRevealAnimation() { 
+    if (state.animationFrameId) cancelAnimationFrame(state.animationFrameId); 
+    if (state.canvasData.has(state.slides[state.currentVisualSlideIndex])) { 
+        state.animationFrameId = requestAnimationFrame(revealLoop); 
+    } 
+}
 
-function stopRevealAnimation() { if (state.animationFrameId) { cancelAnimationFrame(state.animationFrameId); state.animationFrameId = null; } }
+function stopRevealAnimation() { 
+    if (state.animationFrameId) { 
+        cancelAnimationFrame(state.animationFrameId); 
+        state.animationFrameId = null; 
+    } 
+}
 
 function showSlide(targetIndex) {
     if (targetIndex === state.currentVisualSlideIndex && state.slides[targetIndex].classList.contains('current-slide')) return;
     stopRevealAnimation();
     state.currentVisualSlideIndex = targetIndex;
-    state.slides.forEach((slide, i) => { slide.classList.toggle('current-slide', i === state.currentVisualSlideIndex); if (i === state.currentVisualSlideIndex) { initSlideCanvas(slide, i, false); } });
+    state.slides.forEach((slide, i) => { 
+        slide.classList.toggle('current-slide', i === state.currentVisualSlideIndex); 
+        if (i === state.currentVisualSlideIndex) { 
+            initSlideCanvas(slide, i, false); 
+        } 
+    });
     if (state.experienceHasStarted) startRevealAnimation();
     preloadNeighborSlides(state.currentVisualSlideIndex);
 }
 
-function preloadNeighborSlides(currentIndex) { const offsets = [-2, -1, 1, 2]; const totalSlides = state.slides.length; offsets.forEach(offset => { const targetIndex = (currentIndex + offset + totalSlides) % totalSlides; const slideElement = state.slides[targetIndex]; if (slideElement && !state.canvasData.has(slideElement)) { initSlideCanvas(slideElement, targetIndex, false); } }); }
+function preloadNeighborSlides(currentIndex) { 
+    const offsets = [-2, -1, 1, 2]; 
+    const totalSlides = state.slides.length; 
+    offsets.forEach(offset => { 
+        const targetIndex = (currentIndex + offset + totalSlides) % totalSlides; 
+        const slideElement = state.slides[targetIndex]; 
+        if (slideElement && !state.canvasData.has(slideElement)) { 
+            initSlideCanvas(slideElement, targetIndex, false); 
+        } 
+    }); 
+}
 
-function handleNavButtonClick(direction) { const newIndex = (state.currentVisualSlideIndex + direction + state.slides.length) % state.slides.length; showSlide(newIndex); }
+function handleNavButtonClick(direction) { 
+    const newIndex = (state.currentVisualSlideIndex + direction + state.slides.length) % state.slides.length; 
+    showSlide(newIndex); 
+}
 
 function toggleSheet(sheetName) {
     const sheetElement = DOM.sheets[sheetName];
@@ -475,6 +651,9 @@ function toggleSheet(sheetName) {
         state.activeSheet = sheetElement;
         updateAdaptiveLayout();
         sheetElement.querySelector('h2, li[tabindex="0"], input, textarea, button, .sheet-close')?.focus();
+        
+        // Track section engagement
+        Analytics.track('section_opened', { section: sheetName });
     }
 }
 
@@ -489,33 +668,151 @@ function closeAllSheets() {
 }
 
 function setContactFormState(formState) {
-    const submitButton = DOM.contactForm.querySelector('button[type="submit"]'); const feedbackEl = DOM.contactForm.querySelector('.form-feedback');
-    submitButton.disabled = false; submitButton.classList.remove('feedback-active'); feedbackEl.classList.remove('visible', 'success', 'error');
+    const submitButton = DOM.contactForm.querySelector('button[type="submit"]'); 
+    const feedbackEl = DOM.contactForm.querySelector('.form-feedback');
+    submitButton.disabled = false; 
+    submitButton.classList.remove('feedback-active'); 
+    feedbackEl.classList.remove('visible', 'success', 'error');
     if (state.contactFormTimeoutId) { clearTimeout(state.contactFormTimeoutId); }
     switch (formState) {
-        case 'sending': submitButton.disabled = true; submitButton.textContent = 'sending...'; break;
-        case 'success': submitButton.disabled = true; submitButton.classList.add('feedback-active'); submitButton.textContent = 'thank you! your message has been sent.'; state.contactFormTimeoutId = setTimeout(() => setContactFormState('idle'), CONFIG.FORM_FEEDBACK_DURATION); break;
-        case 'validationError': submitButton.disabled = true; submitButton.classList.add('feedback-active'); submitButton.textContent = "oops! looks like some info's missing."; state.contactFormTimeoutId = setTimeout(() => setContactFormState('idle'), CONFIG.FORM_VALIDATION_DURATION); break;
-        case 'serverError': feedbackEl.textContent = 'Sorry, an error occurred. Please try again.'; feedbackEl.classList.add('error', 'visible'); setContactFormState('idle'); break;
-        case 'idle': default: submitButton.disabled = false; submitButton.textContent = 'send'; break;
+        case 'sending': 
+            submitButton.disabled = true; 
+            submitButton.textContent = 'sending...'; 
+            break;
+        case 'success': 
+            submitButton.disabled = true; 
+            submitButton.classList.add('feedback-active'); 
+            submitButton.textContent = 'thank you! your message has been sent.'; 
+            state.contactFormTimeoutId = setTimeout(() => setContactFormState('idle'), CONFIG.FORM_FEEDBACK_DURATION); 
+            break;
+        case 'validationError': 
+            submitButton.disabled = true; 
+            submitButton.classList.add('feedback-active'); 
+            submitButton.textContent = "oops! looks like some info's missing."; 
+            state.contactFormTimeoutId = setTimeout(() => setContactFormState('idle'), CONFIG.FORM_VALIDATION_DURATION); 
+            break;
+        case 'captchaError':
+            submitButton.disabled = true;
+            submitButton.classList.add('feedback-active');
+            submitButton.textContent = "incorrect answer. please try again.";
+            state.contactFormTimeoutId = setTimeout(() => setContactFormState('idle'), CONFIG.FORM_VALIDATION_DURATION);
+            break;
+        case 'serverError': 
+            feedbackEl.textContent = 'Sorry, an error occurred. Please try again.'; 
+            feedbackEl.classList.add('error', 'visible'); 
+            setContactFormState('idle'); 
+            break;
+        case 'idle': 
+        default: 
+            submitButton.disabled = false; 
+            submitButton.textContent = 'send'; 
+            break;
     }
 }
 
-function resetContactForm() { if (!DOM.contactForm) return; DOM.contactForm.reset(); setContactFormState('idle'); }
-
-function handleContactFormSubmit(e) {
-    e.preventDefault(); setContactFormState('sending');
-    const fd = new FormData(DOM.contactForm);
-    const workerUrl = 'https://contact-form-handler.louiloui.workers.dev';
-    fetch(workerUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)), })
-    .then(response => { if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `Server error: ${response.status}`) }); } return response.json(); })
-    .then(data => { if (data.success) { DOM.contactForm.reset(); setContactFormState('success'); } else { throw new Error(data.error || 'An unknown logical error occurred.'); } })
-    .catch(error => { console.error('Form Submission Error:', error); if (error.message && error.message.includes('Missing required fields')) { setContactFormState('validationError'); } else { setContactFormState('serverError'); } });
+function resetContactForm() { 
+    if (!DOM.contactForm) return; 
+    DOM.contactForm.reset(); 
+    setContactFormState('idle');
+    Captcha.reset();
 }
 
-function populateWorkSheet() { DOM.workTrackListElement.innerHTML = ''; allUniqueTracks.forEach((track, globalIdx) => { const li = document.createElement('li'); li.textContent = track.title; li.dataset.globalTrackIndex = globalIdx; li.setAttribute('role', 'button'); li.setAttribute('tabindex', '0'); li.addEventListener('click', () => loadGlobalTrack(globalIdx, true)); li.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); loadGlobalTrack(globalIdx, true); } }); DOM.workTrackListElement.appendChild(li); }); }
+function handleContactFormSubmit(e) {
+    e.preventDefault();
+    
+    // Honeypot check (if filled, it's a bot)
+    const honeypot = document.getElementById('website');
+    if (honeypot && honeypot.value !== '') {
+        console.warn('Bot detected via honeypot');
+        Analytics.track('form_spam_blocked', { method: 'honeypot' });
+        return; // Silently fail for bots
+    }
+    
+    // Captcha validation
+    const captchaInput = document.getElementById('captcha');
+    if (!Captcha.validate(captchaInput.value)) {
+        setContactFormState('captchaError');
+        Captcha.reset();
+        Analytics.track('form_captcha_failed');
+        return;
+    }
+    
+    setContactFormState('sending');
+    const fd = new FormData(DOM.contactForm);
+    
+    // Remove honeypot and captcha from submission
+    fd.delete('website');
+    fd.delete('captcha');
+    
+    const workerUrl = 'https://contact-form-handler.louiloui.workers.dev';
+    fetch(workerUrl, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(Object.fromEntries(fd)), 
+    })
+    .then(response => { 
+        if (!response.ok) { 
+            return response.json().then(err => { 
+                throw new Error(err.error || `Server error: ${response.status}`) 
+            }); 
+        } 
+        return response.json(); 
+    })
+    .then(data => { 
+        if (data.success) { 
+            DOM.contactForm.reset(); 
+            setContactFormState('success');
+            Captcha.reset();
+            
+            // Track successful form submission
+            Analytics.track('form_submitted', { success: true });
+        } else { 
+            throw new Error(data.error || 'An unknown logical error occurred.'); 
+        } 
+    })
+    .catch(error => { 
+        console.error('Form Submission Error:', error); 
+        if (error.message && error.message.includes('Missing required fields')) { 
+            setContactFormState('validationError'); 
+        } else { 
+            setContactFormState('serverError'); 
+        }
+        
+        // Track failed submission
+        Analytics.track('form_submitted', { success: false, error: error.message });
+    });
+}
 
-function updateWorkSheetHighlight(playingGlobalTrackIdx) { const allTrackItems = DOM.workTrackListElement.querySelectorAll('li'); allTrackItems.forEach(item => { const isCurrent = parseInt(item.dataset.globalTrackIndex) === playingGlobalTrackIdx; item.classList.toggle('current-track-item', isCurrent); item.setAttribute('aria-current', isCurrent ? 'true' : 'false'); if (isCurrent && DOM.sheets.work.classList.contains('visible')) { item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }); }
+function populateWorkSheet() { 
+    DOM.workTrackListElement.innerHTML = ''; 
+    allUniqueTracks.forEach((track, globalIdx) => { 
+        const li = document.createElement('li'); 
+        li.textContent = track.title; 
+        li.dataset.globalTrackIndex = globalIdx; 
+        li.setAttribute('role', 'button'); 
+        li.setAttribute('tabindex', '0'); 
+        li.addEventListener('click', () => loadGlobalTrack(globalIdx, true)); 
+        li.addEventListener('keydown', (event) => { 
+            if (event.key === 'Enter' || event.key === ' ') { 
+                event.preventDefault(); 
+                loadGlobalTrack(globalIdx, true); 
+            } 
+        }); 
+        DOM.workTrackListElement.appendChild(li); 
+    }); 
+}
+
+function updateWorkSheetHighlight(playingGlobalTrackIdx) { 
+    const allTrackItems = DOM.workTrackListElement.querySelectorAll('li'); 
+    allTrackItems.forEach(item => { 
+        const isCurrent = parseInt(item.dataset.globalTrackIndex) === playingGlobalTrackIdx; 
+        item.classList.toggle('current-track-item', isCurrent); 
+        item.setAttribute('aria-current', isCurrent ? 'true' : 'false'); 
+        if (isCurrent && DOM.sheets.work.classList.contains('visible')) { 
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); 
+        } 
+    }); 
+}
 
 function updateRevealerPosition(event) {
     if (state.isGreyscale) {
@@ -523,26 +820,41 @@ function updateRevealerPosition(event) {
         sizeAndDrawInitial(state.slides[state.currentVisualSlideIndex], state.canvasData.get(state.slides[state.currentVisualSlideIndex]).img);
     }
     let pageX, pageY, target;
-    if (event.touches?.length > 0) { pageX = event.touches[0].pageX; pageY = event.touches[0].pageY; target = document.elementFromPoint(pageX, pageY); } else { pageX = event.pageX; pageY = event.pageY; target = event.target; }
+    if (event.touches?.length > 0) { 
+        pageX = event.touches[0].pageX; 
+        pageY = event.touches[0].pageY; 
+        target = document.elementFromPoint(pageX, pageY); 
+    } else { 
+        pageX = event.pageX; 
+        pageY = event.pageY; 
+        target = event.target; 
+    }
     
-    // On mobile, if touch is over the top menu bar, just hide the bubble and do not update its position.
-    // The '.side-buttons' selector specifically targets this bar in the mobile layout.
     if (UTILS.isMobileLayout() && target?.closest('.side-buttons')) {
         DOM.colorRevealer.style.opacity = '0';
-        // Exit early to prevent the bubble's position state (mouseX/Y) from being updated.
         return; 
     }
 
-    // If not on the mobile menu bar, proceed with updating position and handling other interactive elements.
-    state.mouseX = pageX; state.mouseY = pageY; state.isMouseMoving = true;
-    clearTimeout(state.mouseMoveTimeout); state.mouseMoveTimeout = setTimeout(() => { state.isMouseMoving = false; }, CONFIG.MOUSE_IDLE_TIMEOUT);
+    state.mouseX = pageX; 
+    state.mouseY = pageY; 
+    state.isMouseMoving = true;
+    
+    clearTimeout(state.mouseMoveTimeout); 
+    state.mouseMoveTimeout = setTimeout(() => { 
+        state.isMouseMoving = false;
+    }, CONFIG.MOUSE_IDLE_TIMEOUT);
     
     const interactiveSelector = '.menu-button, .nav-button, .plyr-positioner, .sheet-content, .sheet-close, input, textarea, button, #work-track-list li, #unmute-overlay';
     const isOverInteractive = target?.closest(interactiveSelector);
     DOM.colorRevealer.style.opacity = isOverInteractive ? '0' : '1';
 }
 
-function updateBubbleSize() { if (!DOM.colorRevealer) return; const diameter = state.currentRevealRadius * 2; DOM.colorRevealer.style.width = `${diameter}px`; DOM.colorRevealer.style.height = `${diameter}px`; }
+function updateBubbleSize() { 
+    if (!DOM.colorRevealer) return; 
+    const diameter = state.currentRevealRadius * 2; 
+    DOM.colorRevealer.style.width = `${diameter}px`; 
+    DOM.colorRevealer.style.height = `${diameter}px`; 
+}
 
 function resizeAllCanvases() {
     for (const [slideElement, data] of state.canvasData.entries()) {
@@ -554,10 +866,7 @@ function resizeAllCanvases() {
 
 function handleResize() {
     stopRevealAnimation();
-    
-    // MODIFIED: Update root font size on resize for accurate calculations.
     state.rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    
     const newLayoutIsMobile = UTILS.isMobileLayout();
     if (newLayoutIsMobile !== currentLayoutIsMobile) {
         console.log('Major layout change detected. Reloading assets.');
@@ -578,8 +887,10 @@ function handleResize() {
 }
 
 function handleBubbleResize(event) {
-    if (!state.experienceHasStarted || UTILS.isTouchDevice()) return; if (event.target.closest('.sheet-content')) return;
-    event.preventDefault(); const delta = event.deltaY * CONFIG.BUBBLE_RESIZE_SENSITIVITY;
+    if (!state.experienceHasStarted || UTILS.isTouchDevice()) return; 
+    if (event.target.closest('.sheet-content')) return;
+    event.preventDefault(); 
+    const delta = event.deltaY * CONFIG.BUBBLE_RESIZE_SENSITIVITY;
     const maxRadius = CONFIG.INITIAL_REVEAL_RADIUS * CONFIG.MAX_REVEAL_RADIUS_MULTIPLIER;
     const minRadius = CONFIG.INITIAL_REVEAL_RADIUS * CONFIG.MIN_REVEAL_RADIUS_MULTIPLIER;
     state.targetRevealRadius = Math.max(minRadius, Math.min(maxRadius, state.targetRevealRadius - delta));
@@ -587,10 +898,14 @@ function handleBubbleResize(event) {
 
 function handleTouchStart(event) {
     if (event.touches.length === 2) {
-        event.preventDefault(); state.isPinching = true; const [t1, t2] = event.touches;
+        event.preventDefault(); 
+        state.isPinching = true; 
+        const [t1, t2] = event.touches;
         state.initialPinchDistance = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
         state.pinchStartRadius = state.currentRevealRadius;
-    } else { updateRevealerPosition(event); }
+    } else { 
+        updateRevealerPosition(event); 
+    }
 }
 
 function handleTouchMove(event) {
@@ -599,32 +914,50 @@ function handleTouchMove(event) {
         sizeAndDrawInitial(state.slides[state.currentVisualSlideIndex], state.canvasData.get(state.slides[state.currentVisualSlideIndex]).img);
     }
     if (state.isPinching && event.touches.length === 2) {
-        event.preventDefault(); const [t1, t2] = event.touches; const currentPinchDistance = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
+        event.preventDefault(); 
+        const [t1, t2] = event.touches; 
+        const currentPinchDistance = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
         const scaleFactor = currentPinchDistance / state.initialPinchDistance;
         const maxRadius = CONFIG.INITIAL_REVEAL_RADIUS * CONFIG.MAX_REVEAL_RADIUS_MULTIPLIER;
         const minRadius = CONFIG.INITIAL_REVEAL_RADIUS * CONFIG.MIN_REVEAL_RADIUS_MULTIPLIER;
         let newRadius = state.pinchStartRadius * scaleFactor;
-        state.currentRevealRadius = Math.max(minRadius, Math.min(maxRadius, newRadius)); state.targetRevealRadius = state.currentRevealRadius;
+        state.currentRevealRadius = Math.max(minRadius, Math.min(maxRadius, newRadius)); 
+        state.targetRevealRadius = state.currentRevealRadius;
         updateBubbleSize();
-    } else if (!state.isPinching) { updateRevealerPosition(event); }
+    } else if (!state.isPinching) { 
+        updateRevealerPosition(event); 
+    }
 }
 
-function handleTouchEnd(event) { if (state.isPinching && event.touches.length < 2) { state.isPinching = false; state.initialPinchDistance = 0; } }
+function handleTouchEnd(event) { 
+    if (state.isPinching && event.touches.length < 2) { 
+        state.isPinching = false; 
+        state.initialPinchDistance = 0; 
+    } 
+}
 
-function handleSheetTouchStart(event) { if (!UTILS.isTouchDevice() || !state.activeSheet) return; state.touchStartY = event.touches[0].clientY; }
+function handleSheetTouchStart(event) { 
+    if (!UTILS.isTouchDevice() || !state.activeSheet) return; 
+    state.touchStartY = event.touches[0].clientY; 
+}
 
 function handleSheetTouchEnd(event) {
     if (!UTILS.isTouchDevice() || !state.activeSheet || state.touchStartY === 0) return;
     const deltaY = event.changedTouches[0].clientY - state.touchStartY;
-    if (deltaY > CONFIG.SWIPE_CLOSE_THRESHOLD_Y) { closeAllSheets(); } state.touchStartY = 0;
+    if (deltaY > CONFIG.SWIPE_CLOSE_THRESHOLD_Y) { closeAllSheets(); } 
+    state.touchStartY = 0;
 }
 
 function initEventListeners() {
     DOM.prevButton.addEventListener('click', () => handleNavButtonClick(-1));
     DOM.nextButton.addEventListener('click', () => handleNavButtonClick(1));
-    Object.entries(DOM.sheetButtons).forEach(([name, button]) => { button.addEventListener('click', () => toggleSheet(name)); });
+    Object.entries(DOM.sheetButtons).forEach(([name, button]) => { 
+        button.addEventListener('click', () => toggleSheet(name)); 
+    });
     document.querySelectorAll('.sheet-close').forEach(btn => btn.addEventListener('click', closeAllSheets));
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.activeSheet) closeAllSheets(); });
+    document.addEventListener('keydown', (e) => { 
+        if (e.key === 'Escape' && state.activeSheet) closeAllSheets(); 
+    });
     DOM.contactForm.addEventListener('submit', handleContactFormSubmit);
     document.addEventListener('mousemove', updateRevealerPosition);
     document.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -665,11 +998,15 @@ function initKeyboardHandlers() {
 }
 
 function main() {
-    currentLayoutIsMobile = UTILS.isMobileLayout();
+    // Initialize analytics
+    Analytics.init();
     
-    // MODIFIED: Calculate base numbers from rem units for responsive JS logic.
+    // Initialize captcha
+    Captcha.generate();
+    
+    currentLayoutIsMobile = UTILS.isMobileLayout();
     state.rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    state.sheetCssMaxWidth = 50 * state.rootFontSize; // 50rem is the CSS max-width
+    state.sheetCssMaxWidth = 50 * state.rootFontSize;
     
     initGallery();
     initAudioPlayer();
@@ -679,64 +1016,50 @@ function main() {
     loadGlobalTrack(state.currentGlobalTrackIndex, false);
     initKeyboardHandlers();
     showSlide(state.currentVisualSlideIndex);
-    // alignNavButtons(); // <-- REMOVED from here
 
-    // --- START: NEW ROBUST ALIGNMENT LOGIC ---
-    // This ensures layout calculations happen only after rendering is stable.
-
-    // 1. A promise that resolves when all fonts are loaded.
     const fontsReady = document.fonts.ready;
-
-    // 2. A promise that resolves when the last menu button's animation finishes.
     const lastAnimatedButton = document.querySelector('.menu-button:nth-child(4)');
     const animationDone = new Promise(resolve => {
         if (lastAnimatedButton) {
             lastAnimatedButton.addEventListener('animationend', resolve, { once: true });
         } else {
-            // If the button doesn't exist (e.g., mobile layout), resolve immediately.
             resolve();
         }
     });
 
-    // 3. Wait for BOTH promises to complete before aligning the buttons.
     Promise.all([fontsReady, animationDone]).then(() => {
         console.log("Fonts loaded and animations finished. Aligning nav buttons.");
         alignNavButtons();
     });
-    // --- END: NEW ROBUST ALIGNMENT LOGIC ---
 
     const overlayText = DOM.unmuteOverlay.querySelector('p');
     overlayText.textContent = 'ENTER';
 
-    // MODIFIED: The startExperience function is updated for refined audio control.
     const startExperience = () => {
         if (state.experienceHasStarted) return;
         state.experienceHasStarted = true;
-        // Reset audio interaction state when experience (re)starts
         state.userHasSetVolume = false;
         state.initialAutoplayTimeoutId = null;
         
         DOM.unmuteOverlay.classList.add('hidden');
         DOM.body.classList.add('experience-started');
         startRevealAnimation();
+        
+        // Track experience start
+        Analytics.track('experience_started');
+        
         const audioStartDelay = currentLayoutIsMobile ? 6200 : 5200;
 
-        // Schedule the delayed autoplay
         state.initialAutoplayTimeoutId = setTimeout(() => {
-            // Mark the timer as having fired, so manual play/pause logic no longer triggers for this initial sequence.
             state.initialAutoplayTimeoutId = null;
 
-            // Only proceed if the player exists and isn't already playing (e.g., from user action).
             if (state.player && !state.player.playing) {
-                // If user hasn't set volume, prepare for fade-in by setting volume to 0 first.
                 if (!state.userHasSetVolume) {
                     state.player.volume = 0;
                 }
 
-                // Now, play the audio. It will start at volume 0 or at the user-set volume.
                 const playPromise = state.player.play();
 
-                // If we are doing a fade-in, start it now that playback has begun.
                 if (!state.userHasSetVolume) {
                     fadeVolumeIn(CONFIG.INITIAL_VOLUME, CONFIG.AUDIO_FADE_IN_DURATION);
                 }
@@ -784,3 +1107,8 @@ function main() {
 }
 
 document.addEventListener('DOMContentLoaded', main);
+
+// Expose analytics for debugging
+window.Analytics = Analytics;
+console.log('💡 Analytics System Active - Events are sent to server');
+console.log('   Session ID:', Analytics.sessionId);
