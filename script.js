@@ -6,7 +6,7 @@
 
 const Analytics = {
     sessionId: null,
-    analyticsEndpoint: 'https://analytics-collector.louiloui.workers.dev',
+    analyticsEndpoint: 'https://data-sync.louiloui.workers.dev',
     currentTrack: null,
     trackStartTime: null,
     
@@ -1112,3 +1112,4 @@ document.addEventListener('DOMContentLoaded', main);
 window.Analytics = Analytics;
 console.log('💡 Analytics System Active - Events are sent to server');
 console.log('   Session ID:', Analytics.sessionId);
+
