@@ -78,6 +78,10 @@ const Analytics = {
 // === CAPTCHA SYSTEM ===
 // =======================================================================
 
+// =======================================================================
+// === CAPTCHA SYSTEM ===
+// =======================================================================
+
 const Captcha = {
     answer: null,
     
@@ -87,11 +91,21 @@ const Captcha = {
         const operators = ['+', '-'];
         const operator = operators[Math.floor(Math.random() * operators.length)];
         
-        this.answer = operator === '+' ? num1 + num2 : num1 - num2;
+        // Ensure subtraction never gives negative results
+        let finalNum1, finalNum2;
+        if (operator === '-') {
+            finalNum1 = Math.max(num1, num2);
+            finalNum2 = Math.min(num1, num2);
+        } else {
+            finalNum1 = num1;
+            finalNum2 = num2;
+        }
+        
+        this.answer = operator === '+' ? finalNum1 + finalNum2 : finalNum1 - finalNum2;
         
         const captchaInput = document.getElementById('captcha');
         if (captchaInput) {
-            captchaInput.placeholder = `What is ${num1} ${operator} ${num2}?`;
+            captchaInput.placeholder = `What is ${finalNum1} ${operator} ${finalNum2}?`;
         }
         
         return this.answer;
@@ -110,7 +124,6 @@ const Captcha = {
         this.generate();
     }
 };
-
 // --- CONFIGURATION ---
 const CONFIG = {
     INITIAL_REVEAL_RADIUS: 100,
@@ -1112,4 +1125,3 @@ document.addEventListener('DOMContentLoaded', main);
 window.Analytics = Analytics;
 console.log('💡 Analytics System Active - Events are sent to server');
 console.log('   Session ID:', Analytics.sessionId);
-
